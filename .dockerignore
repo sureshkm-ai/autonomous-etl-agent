@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# UV / venv
+.venv/
+venv/
+
+# Dev-only directories
+tests/
+docs/
+notebooks/
+scripts/
+.github/
+
+# Terraform state
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+
+# Spark local
+spark-warehouse/
+derby.log
+metastore_db/
+*.whl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Git
+.git/
+.gitignore

@@ -1,0 +1,53 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ETL Agent Framework Configuration
+# Defines standards the Coding Agent must follow when generating pipelines.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+schema_standards:
+  date_format: "yyyy-MM-dd"
+  timestamp_format: "yyyy-MM-dd HH:mm:ss"
+  null_representation: null
+  string_encoding: "utf-8"
+  decimal_precision: 18
+  decimal_scale: 4
+  enforce_schema_on_read: true
+
+transformation_rules:
+  default_join_type: "left"
+  dedupe_strategy: "keep_first"          # keep_first | keep_last | keep_all
+  null_fill_string: "UNKNOWN"
+  null_fill_numeric: 0
+  string_trim: true
+  column_name_case: "snake_case"
+
+naming_conventions:
+  pipeline_suffix: "_pipeline"
+  source_prefix: "raw_"
+  output_suffix: "_processed"
+  test_prefix: "test_"
+  column_separator: "_"
+  table_name_case: "snake_case"
+  function_name_case: "snake_case"
+
+test_coverage:
+  minimum_coverage_pct: 80
+  required_checks:
+    - schema_validation
+    - null_check
+    - business_logic
+    - row_count
+  schema_strictness: "strict"           # strict | lenient
+  fail_on_empty_output: true
+
+output:
+  default_format: "delta"
+  partition_by: ["year", "month"]
+  optimize_write: true
+  auto_compact: true
+  overwrite_schema: false
+
+performance:
+  broadcast_join_threshold_mb: 10       # Tables smaller than this get broadcast
+  default_shuffle_partitions: 200
+  enable_adaptive_query: true
+  cache_intermediate_results: false

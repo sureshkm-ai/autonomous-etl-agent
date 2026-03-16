@@ -1,0 +1,28 @@
+id: "story-004"
+title: "Score customers using RFM analysis"
+description: >
+  As a data engineer, I want to compute RFM (Recency, Frequency, Monetary)
+  scores for all customers to support targeted marketing campaigns such as
+  the Amazon iPhone 17 launch.
+acceptance_criteria:
+  - "Recency = days since last order per customer"
+  - "Frequency = total number of orders per customer"
+  - "Monetary = total spend per customer"
+  - "Each metric must be scored 1-5 using quintile bucketing"
+  - "A combined RFM score must be computed as R+F+M"
+source:
+  path: "s3://etl-agent-raw/amazon_orders.parquet"
+  format: "parquet"
+target:
+  path: "s3://etl-agent-processed/rfm_scores"
+  format: "delta"
+  mode: "merge"
+transformations:
+  - operation: "aggregate"
+    group_by: ["customer_id"]
+    metrics: ["recency_days", "order_count", "total_spend"]
+  - operation: "enrich"
+    column: "rfm_score"
+    value: "r_score + f_score + m_score"
+output_format: "script"
+tags: ["rfm", "analytics", "marketing", "amazon", "iphone-17"]
