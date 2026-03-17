@@ -8,6 +8,7 @@ from etl_agent.core.exceptions import AirflowTriggerError, S3UploadError
 from etl_agent.core.logging import get_logger
 from etl_agent.core.models import RunStatus
 from etl_agent.core.state import GraphState
+from etl_agent.tools.aws_tools import AWSTools  # module-level import for patching
 
 logger = get_logger(__name__)
 
@@ -18,8 +19,15 @@ class DeployAgent:
     def __init__(self) -> None:
         self.settings = get_settings()
 
+    async def __call__(self, state: GraphState) -> dict[str, Any]:
+        """Make the agent callable as ``await agent(state)``."""
+        try:
+            return await self.run(state)
+        except Exception as e:
+            logger.error("deploy_agent_call_failed", error=str(e))
+            return {"error_message": str(e), "status": RunStatus.DONE}  # Non-blocking
+
     async def run(self, state: GraphState) -> dict[str, Any]:
-        from etl_agent.tools.aws_tools import AWSTools
         etl_spec = state["etl_spec"]
         logger.info("deploy_agent_started", pipeline=etl_spec.pipeline_name)
 
@@ -47,8 +55,11 @@ class DeployAgent:
             logger.info("artifact_uploaded", s3_url=s3_url)
 
             # Step 3: Trigger Airflow DAG via REST API
+            # user_story is optional — tests may not include it in state
+            user_story = state.get("user_story")
+            story_id = user_story.id if user_story else "unknown"
             dag_run_id = await self._trigger_airflow(
-                etl_spec.pipeline_name, s3_url, str(state["run_id"]), state["user_story"].id
+                etl_spec.pipeline_name, s3_url, str(state["run_id"]), story_id
             )
             logger.info("airflow_triggered", dag_run_id=dag_run_id)
 

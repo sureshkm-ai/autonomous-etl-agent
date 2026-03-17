@@ -16,11 +16,50 @@ from etl_agent.prompts.story_parser import build_story_parser_prompt
 logger = get_logger(__name__)
 
 
+class _LLMWrapper:
+    """Thin LangChain-style wrapper so tests can mock agent._llm.ainvoke."""
+
+    def __init__(self, settings: Any) -> None:
+        self._settings = settings
+
+    async def ainvoke(self, messages: list[dict]) -> Any:
+        import anthropic
+
+        client = anthropic.AsyncAnthropic(api_key=self._settings.anthropic_api_key)
+        response = await client.messages.create(
+            model=self._settings.llm_model,
+            max_tokens=self._settings.llm_max_tokens,
+            temperature=self._settings.llm_temperature,
+            messages=messages,
+        )
+        text = response.content[0].text
+
+        class _Resp:
+            content = text
+
+        return _Resp()
+
+
 class StoryParserAgent:
     """Agent 1: Converts a UserStory into a structured ETLSpec using Claude."""
 
+    # Class-level default — allows integration tests to patch via
+    # patch("etl_agent.agents.story_parser.StoryParserAgent._llm").
+    # Unit tests can still use patch.object(instance, "_llm").
+    _llm: Any = None
+
     def __init__(self) -> None:
         self.settings = get_settings()
+        # Do NOT set self._llm here; lazy-init in _call_llm so the class-level
+        # patch applied by integration tests remains visible on new instances.
+
+    async def __call__(self, state: GraphState) -> dict[str, Any]:
+        """Make the agent callable as ``await agent(state)``."""
+        try:
+            return await self.run(state)
+        except Exception as e:
+            logger.error("story_parser_call_failed", error=str(e))
+            return {"status": RunStatus.FAILED, "error_message": str(e)}
 
     @retry(
         stop=stop_after_attempt(3),
@@ -29,16 +68,10 @@ class StoryParserAgent:
     )
     async def _call_llm(self, prompt: str) -> str:
         """Call Claude with retry logic for rate limits and transient errors."""
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=self.settings.anthropic_api_key)
-        response = await client.messages.create(
-            model=self.settings.llm_model,
-            max_tokens=self.settings.llm_max_tokens,
-            temperature=self.settings.llm_temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.content[0].text
+        if self._llm is None:
+            self._llm = _LLMWrapper(self.settings)
+        response = await self._llm.ainvoke([{"role": "user", "content": prompt}])
+        return response.content
 
     async def run(self, state: GraphState) -> dict[str, Any]:
         """Parse the user story and return an ETLSpec."""

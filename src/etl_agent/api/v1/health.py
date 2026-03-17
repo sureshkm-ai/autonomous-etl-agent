@@ -13,4 +13,4 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse, include_in_schema=True)
 async def health_check() -> HealthResponse:
     """Returns service health status. No authentication required."""
-    return HealthResponse(status="healthy", version="0.1.0")
+    return HealthResponse(status="ok", version="0.1.0")

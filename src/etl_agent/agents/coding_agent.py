@@ -16,23 +16,52 @@ from etl_agent.prompts.code_generator import build_code_generator_prompt
 logger = get_logger(__name__)
 
 
+class _LLMWrapper:
+    """Thin LangChain-style wrapper so tests can mock agent._llm.ainvoke."""
+
+    def __init__(self, settings: Any) -> None:
+        self._settings = settings
+
+    async def ainvoke(self, messages: list[dict]) -> Any:
+        import anthropic
+
+        client = anthropic.AsyncAnthropic(api_key=self._settings.anthropic_api_key)
+        response = await client.messages.create(
+            model=self._settings.llm_model,
+            max_tokens=self._settings.llm_max_tokens,
+            temperature=self._settings.llm_temperature,
+            messages=messages,
+        )
+        text = response.content[0].text
+
+        class _Resp:
+            content = text
+
+        return _Resp()
+
+
 class CodingAgent:
     """Agent 2: Generates PySpark code + README from an ETLSpec."""
+
+    _llm: Any = None  # class-level default; lazy-init in _call_llm
 
     def __init__(self) -> None:
         self.settings = get_settings()
 
+    async def __call__(self, state: GraphState) -> dict[str, Any]:
+        """Make the agent callable as ``await agent(state)``."""
+        try:
+            return await self.run(state)
+        except Exception as e:
+            logger.error("coding_agent_call_failed", error=str(e))
+            return {"status": RunStatus.FAILED, "error_message": str(e)}
+
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
     async def _call_llm(self, prompt: str) -> str:
-        import anthropic
-        client = anthropic.AsyncAnthropic(api_key=self.settings.anthropic_api_key)
-        response = await client.messages.create(
-            model=self.settings.llm_model,
-            max_tokens=self.settings.llm_max_tokens,
-            temperature=self.settings.llm_temperature,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.content[0].text
+        if self._llm is None:
+            self._llm = _LLMWrapper(self.settings)
+        response = await self._llm.ainvoke([{"role": "user", "content": prompt}])
+        return response.content
 
     async def run(self, state: GraphState) -> dict[str, Any]:
         etl_spec = state["etl_spec"]
@@ -59,7 +88,9 @@ class CodingAgent:
 
             # Validate syntax
             from etl_agent.tools.code_validator import validate_python_syntax
-            validate_python_syntax(generated_code)
+            is_valid, syntax_error = validate_python_syntax(generated_code)
+            if not is_valid:
+                raise CodeGenerationError(f"Generated code has syntax error: {syntax_error}")
 
             logger.info("coding_agent_completed", pipeline=etl_spec.pipeline_name,
                         code_lines=len(generated_code.splitlines()))

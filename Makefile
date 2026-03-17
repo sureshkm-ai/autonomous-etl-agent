@@ -29,15 +29,30 @@ install-dev: ## Install all dependencies including dev tools
 	uv run pre-commit install
 	@echo "✅ Dev dependencies installed + pre-commit hooks set up"
 
+# ── Java 17 detection (PySpark 3.5 / Hadoop 3.3.x is incompatible with Java 21)
+# Prefer brew-installed Java 17; fall back to Linux paths; fall back to JAVA_HOME as-is.
+JAVA17_HOME := $(shell \
+  for p in \
+    "$$(brew --prefix openjdk@17 2>/dev/null)/libexec/openjdk.jdk/Contents/Home" \
+    "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" \
+    "/usr/lib/jvm/java-17-openjdk-arm64" \
+    "/usr/lib/jvm/java-17-openjdk-amd64" \
+    "/usr/lib/jvm/java-17-openjdk" \
+    "/usr/lib/jvm/temurin-17"; \
+  do [ -d "$$p" ] && echo "$$p" && break; done)
+
+# Only override JAVA_HOME when we actually found a Java 17 installation
+JAVA_HOME_SET := $(if $(JAVA17_HOME),JAVA_HOME="$(JAVA17_HOME)",)
+
 # ── Testing ───────────────────────────────────────────────────────────────────
 test: ## Run all tests with coverage
-	uv run pytest tests/ -v
+	$(JAVA_HOME_SET) uv run pytest tests/ -v
 
 test-unit: ## Run unit tests only (fast)
-	uv run pytest tests/unit/ -v -m unit
+	$(JAVA_HOME_SET) uv run pytest tests/unit/ -v
 
 test-integration: ## Run integration tests (mocked AWS + GitHub)
-	uv run pytest tests/integration/ -v -m integration
+	$(JAVA_HOME_SET) uv run pytest tests/integration/ -v
 
 # ── Code Quality ──────────────────────────────────────────────────────────────
 lint: ## Run ruff linter

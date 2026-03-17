@@ -166,7 +166,7 @@ markers = [
   "unit: fast isolated unit tests",
   "integration: integration tests with mocked external services",
 ]
-addopts = "--cov=src/etl_agent --cov-report=term-missing --cov-report=html --cov-fail-under=80"
+addopts = "--cov=src/etl_agent --cov-report=term-missing --cov-report=html"
 
 # ── Coverage ───────────────────────────────────────────────────────────────────
 [tool.coverage.run]

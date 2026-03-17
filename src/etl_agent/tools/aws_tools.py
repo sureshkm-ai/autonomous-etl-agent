@@ -18,11 +18,13 @@ class AWSTools:
 
     def __init__(
         self,
-        aws_access_key_id: str,
-        aws_secret_access_key: str,
-        region: str,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        region: str = "us-east-1",
+        bucket: Optional[str] = None,
         endpoint_url: Optional[str] = None,
     ) -> None:
+        self._bucket = bucket  # default bucket for upload_to_s3 when not specified
         self._s3 = boto3.client(
             "s3",
             aws_access_key_id=aws_access_key_id,
@@ -68,11 +70,27 @@ class AWSTools:
         except Exception as e:
             raise ArtifactPackagingError(f"Packaging failed: {e}") from e
 
-    def upload_to_s3(self, local_path: str, bucket: str, key: str) -> str:
-        """Upload a file to S3 and return its S3 URL."""
+    def upload_to_s3(
+        self,
+        local_path: str,
+        bucket: Optional[str] = None,
+        key: Optional[str] = None,
+        s3_key: Optional[str] = None,
+    ) -> str:
+        """Upload a file to S3 and return its S3 URL.
+
+        ``s3_key`` is an alias for ``key`` for backwards compatibility with
+        test callers that use the ``s3_key`` keyword argument.
+        """
+        resolved_bucket = bucket or self._bucket
+        resolved_key = key or s3_key
+        if not resolved_bucket:
+            raise S3UploadError("bucket is required (pass 'bucket=' or set it in __init__)")
+        if not resolved_key:
+            raise S3UploadError("key or s3_key is required")
         try:
-            self._s3.upload_file(local_path, bucket, key)
-            s3_url = f"s3://{bucket}/{key}"
+            self._s3.upload_file(local_path, resolved_bucket, resolved_key)
+            s3_url = f"s3://{resolved_bucket}/{resolved_key}"
             logger.info("s3_upload_complete", url=s3_url)
             return s3_url
         except Exception as e:

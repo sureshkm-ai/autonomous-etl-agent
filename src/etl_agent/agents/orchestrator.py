@@ -122,26 +122,51 @@ def build_graph() -> Any:
     return graph.compile()
 
 
-async def run_pipeline(story: UserStory, deploy: bool = True) -> RunResult:
+async def run_pipeline(
+    story: "UserStory | None" = None,
+    deploy: bool = True,
+    user_story: "UserStory | dict | None" = None,
+    run_id: "uuid.UUID | None" = None,
+    require_human_approval: "bool | None" = None,
+    max_retries: "int | None" = None,
+) -> "dict[str, Any]":
     """
     Entry point: run the full agent pipeline for a user story.
 
+    Accepts two calling styles:
+    - ``run_pipeline(story)``            — original positional style
+    - ``run_pipeline(user_story=..., run_id=..., require_human_approval=..., deploy=..., max_retries=...)``
+                                         — integration-test keyword style
+
     Args:
-        story: The user story to process.
+        story: UserStory (positional, legacy)
         deploy: Whether to trigger Airflow deployment after PR.
+        user_story: UserStory or plain dict (keyword, preferred by tests)
+        run_id: Pre-supplied run UUID (optional; generated if omitted)
+        require_human_approval: Override the settings value for this run
+        max_retries: Override the settings value for this run
 
     Returns:
-        RunResult with all outputs and final status.
+        Final graph state dict with status, PR URL, etc.
     """
-    settings = get_settings()
-    run_id = uuid.uuid4()
+    # Normalise: prefer keyword 'user_story', fall back to positional 'story'
+    resolved_story = user_story if user_story is not None else story
+    if isinstance(resolved_story, dict):
+        resolved_story = UserStory(**resolved_story)
+    if resolved_story is None:
+        raise ValueError("Provide 'story' or 'user_story'")
 
-    structlog.contextvars.bind_contextvars(run_id=str(run_id), story_id=story.id)
-    logger.info("pipeline_started", story_title=story.title)
+    settings = get_settings()
+    resolved_run_id = run_id if run_id is not None else uuid.uuid4()
+    resolved_approval = require_human_approval if require_human_approval is not None else settings.require_human_approval
+    resolved_max_retries = max_retries if max_retries is not None else settings.max_retries
+
+    structlog.contextvars.bind_contextvars(run_id=str(resolved_run_id), story_id=resolved_story.id)
+    logger.info("pipeline_started", story_title=resolved_story.title)
 
     initial_state: GraphState = {
-        "user_story": story,
-        "run_id": run_id,
+        "user_story": resolved_story,
+        "run_id": resolved_run_id,
         "etl_spec": None,
         "generated_code": None,
         "generated_tests": None,
@@ -154,29 +179,19 @@ async def run_pipeline(story: UserStory, deploy: bool = True) -> RunResult:
         "airflow_dag_run_id": None,
         "status": RunStatus.PENDING,
         "retry_count": 0,
-        "max_retries": settings.max_retries,
+        "max_retries": resolved_max_retries,
         "error_message": None,
-        "awaiting_approval": settings.require_human_approval,
+        "awaiting_approval": resolved_approval,
         "messages": [],
     }
 
     compiled_graph = build_graph()
     final_state = await compiled_graph.ainvoke(initial_state)
 
-    result = RunResult(
-        run_id=run_id,
-        story_id=story.id,
-        status=final_state["status"],
-        etl_spec=final_state.get("etl_spec"),
-        test_result=final_state.get("test_results"),
-        github_issue_url=final_state.get("github_issue_url"),
-        github_pr_url=final_state.get("github_pr_url"),
-        s3_artifact_url=final_state.get("s3_artifact_url"),
-        airflow_dag_run_id=final_state.get("airflow_dag_run_id"),
-        retry_count=final_state.get("retry_count", 0),
-        error_message=final_state.get("error_message"),
+    logger.info(
+        "pipeline_completed",
+        status=final_state.get("status"),
+        pr_url=final_state.get("github_pr_url"),
     )
-
-    logger.info("pipeline_completed", status=result.status.value, pr_url=result.github_pr_url)
     structlog.contextvars.clear_contextvars()
-    return result
+    return final_state

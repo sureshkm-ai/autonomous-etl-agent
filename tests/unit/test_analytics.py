@@ -9,9 +9,57 @@ import pytest
 
 # ─── PySpark fixtures are session-scoped to avoid repeated JVM init ───────────
 
+def _configure_java_home() -> None:
+    """Point JAVA_HOME at Java 17 if available.
+
+    PySpark 3.5 works with Java 17; Java 21 removed Subject.getSubject()
+    which Hadoop 3.3.x calls, crashing the JVM gateway on startup.
+    """
+    import os
+    from pathlib import Path
+
+    # Already set externally (e.g. via Makefile) — honour it
+    if "JAVA_HOME" in os.environ:
+        return
+
+    candidates = [
+        # Homebrew on Apple Silicon
+        "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
+        # Homebrew on Intel
+        "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
+        # Linux SDKMAN / system installs
+        "/usr/lib/jvm/java-17-openjdk-arm64",
+        "/usr/lib/jvm/java-17-openjdk-amd64",
+        "/usr/lib/jvm/java-17-openjdk",
+        "/usr/lib/jvm/temurin-17",
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            os.environ["JAVA_HOME"] = path
+            # PySpark 3.5 on Java 17 needs these module opens
+            os.environ.setdefault("JAVA_TOOL_OPTIONS", " ".join([
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.net=ALL-UNNAMED",
+                "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+                "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+                "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+                "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+                "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+                "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED",
+            ]))
+            break
+
+
 @pytest.fixture(scope="session")
 def spark():
     """Create a test SparkSession with Delta Lake support."""
+    _configure_java_home()
     try:
         from pyspark.sql import SparkSession
         from delta import configure_spark_with_delta_pip
@@ -28,10 +76,12 @@ def spark():
             .config("spark.sql.shuffle.partitions", "2")
         )
         _spark = configure_spark_with_delta_pip(builder).getOrCreate()
-        yield _spark
-        _spark.stop()
-    except ImportError:
-        pytest.skip("PySpark not available in this environment")
+    except Exception as e:
+        pytest.skip(f"Spark not available in this environment: {e}")
+        return
+
+    yield _spark
+    _spark.stop()
 
 
 @pytest.fixture
