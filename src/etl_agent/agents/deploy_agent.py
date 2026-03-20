@@ -96,4 +96,9 @@ class DeployAgent:
             if response.status_code not in (200, 409):  # 409 = already running, OK
                 raise AirflowTriggerError(f"Airflow API returned {response.status_code}: {response.text}")
 
+            # Use the dag_run_id from Airflow's response (e.g. "manual__2025-01-01T00:00:00")
+            # so callers can correlate with the Airflow UI; fall back to our generated id.
+            response_data = response.json()
+            dag_run_id = response_data.get("dag_run_id", dag_run_id)
+
         return dag_run_id

@@ -10,8 +10,8 @@ CYAN  := \033[0;36m
 RESET := \033[0m
 
 .PHONY: help install install-dev test test-unit test-integration lint format \
-        typecheck pre-commit demo up down migrate generate-fixtures seed-db \
-        deploy clean build
+        typecheck pre-commit demo up down localstack-up localstack-down migrate \
+        generate-fixtures seed-db deploy clean build
 
 help: ## Show this help message
 	@echo "$(CYAN)Autonomous ETL Agent$(RESET)"
@@ -51,7 +51,7 @@ test: ## Run all tests with coverage
 test-unit: ## Run unit tests only (fast)
 	$(JAVA_HOME_SET) uv run pytest tests/unit/ -v
 
-test-integration: ## Run integration tests (mocked AWS + GitHub)
+test-integration: ## Run integration tests (requires LocalStack: make localstack-up)
 	$(JAVA_HOME_SET) uv run pytest tests/integration/ -v
 
 # ── Code Quality ──────────────────────────────────────────────────────────────
@@ -94,6 +94,13 @@ down: ## Stop all services
 
 logs: ## Tail app logs
 	docker compose -f infra/docker-compose.yml logs -f app
+
+localstack-up: ## Start LocalStack only (S3 for integration tests)
+	docker compose -f infra/docker-compose.yml up -d localstack
+	@echo "✅ LocalStack started at http://localhost:4566"
+
+localstack-down: ## Stop LocalStack
+	docker compose -f infra/docker-compose.yml stop localstack
 
 # ── Demo ──────────────────────────────────────────────────────────────────────
 demo: ## Run full E2E demo (story → code → tests → PR)
