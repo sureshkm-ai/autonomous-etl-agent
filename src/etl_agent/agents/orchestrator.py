@@ -26,31 +26,31 @@ logger = get_logger(__name__)
 async def _story_parser_node(state: GraphState) -> dict[str, Any]:
     from etl_agent.agents.story_parser import StoryParserAgent
     agent = StoryParserAgent()
-    return await agent.run(state)
+    return await agent(state)
 
 
 async def _coding_agent_node(state: GraphState) -> dict[str, Any]:
     from etl_agent.agents.coding_agent import CodingAgent
     agent = CodingAgent()
-    return await agent.run(state)
+    return await agent(state)
 
 
 async def _test_agent_node(state: GraphState) -> dict[str, Any]:
     from etl_agent.agents.test_agent import TestAgent
     agent = TestAgent()
-    return await agent.run(state)
+    return await agent(state)
 
 
 async def _pr_agent_node(state: GraphState) -> dict[str, Any]:
     from etl_agent.agents.pr_agent import PRAgent
     agent = PRAgent()
-    return await agent.run(state)
+    return await agent(state)
 
 
 async def _deploy_agent_node(state: GraphState) -> dict[str, Any]:
     from etl_agent.agents.deploy_agent import DeployAgent
     agent = DeployAgent()
-    return await agent.run(state)
+    return await agent(state)
 
 
 async def _failure_node(state: GraphState) -> dict[str, Any]:

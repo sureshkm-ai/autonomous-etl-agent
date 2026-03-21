@@ -1,6 +1,8 @@
 """
 Test Agent — generates pytest tests and executes them.
-Produces schema checks, null checks, and business logic assertions.
+Inherits ReactAgent:
+  - LLM loop fixes syntax errors in generated test code.
+  - Tool loop retries subprocess execution on transient failures.
 """
 import subprocess
 import tempfile
@@ -9,6 +11,7 @@ from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from etl_agent.agents.base import ReactAgent
 from etl_agent.core.config import get_settings
 from etl_agent.core.exceptions import TestGenerationError
 from etl_agent.core.logging import get_logger
@@ -20,8 +23,6 @@ logger = get_logger(__name__)
 
 
 class _LLMWrapper:
-    """Thin LangChain-style wrapper so tests can mock agent._llm.ainvoke."""
-
     def __init__(self, settings: Any) -> None:
         self._settings = settings
 
@@ -43,16 +44,15 @@ class _LLMWrapper:
         return _Resp()
 
 
-class TestAgent:
+class TestAgent(ReactAgent):
     """Agent 3: Generates and runs pytest tests for the generated pipeline."""
 
-    _llm: Any = None  # class-level default; lazy-init in _call_llm
+    _llm: Any = None
 
     def __init__(self) -> None:
         self.settings = get_settings()
 
     async def __call__(self, state: GraphState) -> dict[str, Any]:
-        """Make the agent callable as ``await agent(state)``."""
         try:
             return await self.run(state)
         except Exception as e:
@@ -60,48 +60,42 @@ class TestAgent:
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
-    async def _call_llm(self, prompt: str) -> str:
+    async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
-        response = await self._llm.ainvoke([{"role": "user", "content": prompt}])
+        response = await self._llm.ainvoke(messages)
         return response.content
 
-    async def _generate_tests(self, state: GraphState) -> str:
-        from etl_agent.tools.code_validator import validate_python_syntax
+    @staticmethod
+    def _extract_test_code(raw: str) -> str:
         import re
+        m = re.search(r"```python\n(.*?)\n```", raw, re.DOTALL)
+        if m:
+            return m.group(1)
+        lines = raw.strip().splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        return "\n".join(lines)
 
-        prompt = build_test_generator_prompt(
-            etl_spec=state["etl_spec"],
-            generated_code=state["generated_code"],
+    @staticmethod
+    def _validate_test_syntax(raw: str) -> tuple[bool, str]:
+        from etl_agent.tools.code_validator import validate_python_syntax
+        code = TestAgent._extract_test_code(raw)
+        ok, err = validate_python_syntax(code)
+        return ok, err or ""
+
+    @staticmethod
+    def _fix_test_syntax_message(raw: str, error: str, attempt: int) -> str:
+        return (
+            f"The pytest test code you generated has a syntax error:\n\n"
+            f"```\n{error}\n```\n\n"
+            "Please return the **complete corrected test code** inside a single "
+            "```python ... ``` block. Do not truncate."
         )
-        raw_response = await self._call_llm(prompt)
-
-        code_match = re.search(r"```python\n(.*?)\n```", raw_response, re.DOTALL)
-        if code_match:
-            test_code = code_match.group(1)
-        else:
-            # Fallback: strip any leading/trailing fence lines the LLM may have included
-            lines = raw_response.strip().splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            test_code = "\n".join(lines)
-
-        # Validate syntax before returning — catches truncated LLM responses early
-        is_valid, syntax_error = validate_python_syntax(test_code)
-        if not is_valid:
-            raise TestGenerationError(
-                f"Generated test code has a syntax error (likely truncated response): {syntax_error}"
-            )
-
-        return test_code
 
     def _parse_pytest_output(self, output: str, return_code: int) -> TestResult:
-        """Parse pytest stdout/stderr into a TestResult.
-
-        Public so unit tests can exercise it in isolation.
-        """
         import re
 
         passed_count = 0
@@ -137,51 +131,36 @@ class TestAgent:
         )
 
     def _run_tests(self, pipeline_code: str, test_code: str, pipeline_name: str = "pipeline") -> TestResult:
-        """Write code to temp files and run pytest."""
         import os
         import sys
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
-            # Write pipeline under the canonical name AND the full pipeline name.
-            # Generated tests may import either `pipeline` or `{pipeline_name}`.
             (tmp / "pipeline.py").write_text(pipeline_code)
             safe_name = pipeline_name.replace("-", "_")
             if safe_name != "pipeline":
                 (tmp / f"{safe_name}.py").write_text(pipeline_code)
             (tmp / "test_pipeline.py").write_text(test_code)
             (tmp / "__init__.py").touch()
-            # Drop pytest's own addopts (--cov-fail-under etc.) from any parent config
             (tmp / "pytest.ini").write_text("[pytest]\n")
 
-            # Inherit the current env so the venv's site-packages are available,
-            # but override PYTHONPATH to include tmpdir for `import pipeline`.
             env = os.environ.copy()
             existing_pypath = env.get("PYTHONPATH", "")
             env["PYTHONPATH"] = tmpdir + (f":{existing_pypath}" if existing_pypath else "")
-
-            # Suppress Maven JAR downloads when pipeline.py is imported
-            # (configure_spark_with_delta_pip tries to pull packages on import of the session)
             env.setdefault("PYSPARK_SUBMIT_ARGS", "--master local[1] pyspark-shell")
 
-            # Prefer Java 17 for PySpark 3.5 compatibility (Java 21 breaks Hadoop 3.3.x)
-            java17_candidates = [
+            java_candidates = [
                 "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
                 "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
-            ]
-            java_any_candidates = java17_candidates + [
-                "/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home",
-                "/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home",
                 "/usr/lib/jvm/java-21-openjdk-arm64",
                 "/usr/lib/jvm/java-21-openjdk-amd64",
             ]
             if "JAVA_HOME" not in env:
-                for candidate in java_any_candidates:
+                for candidate in java_candidates:
                     if Path(candidate).exists():
                         env["JAVA_HOME"] = candidate
                         break
 
-            # JVM --add-opens flags required by PySpark 3.5 on Java 17+
             env.setdefault("JAVA_TOOL_OPTIONS", " ".join([
                 "--add-opens=java.base/java.lang=ALL-UNNAMED",
                 "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
@@ -207,20 +186,39 @@ class TestAgent:
             )
 
             output = result.stdout + result.stderr
-
-            # Log full pytest output so CodingAgent retries have useful context
             logger.info("test_agent_pytest_output", output=output[-3000:])
-
             return self._parse_pytest_output(output, result.returncode)
 
     async def run(self, state: GraphState) -> dict[str, Any]:
         logger.info("test_agent_started", pipeline=state["etl_spec"].pipeline_name)
         try:
-            generated_tests = await self._generate_tests(state)
-            test_results = self._run_tests(
-                state["generated_code"],
-                generated_tests,
-                pipeline_name=state["etl_spec"].pipeline_name,
+            # React LLM loop: fix syntax errors in generated test code
+            raw_response = await self.react_llm_loop(
+                initial_messages=[{
+                    "role": "user",
+                    "content": build_test_generator_prompt(
+                        etl_spec=state["etl_spec"],
+                        generated_code=state["generated_code"],
+                    ),
+                }],
+                call_llm=self._call_llm,
+                validate=self._validate_test_syntax,
+                build_fix_message=self._fix_test_syntax_message,
+                agent_name="test_agent",
+            )
+            generated_tests = self._extract_test_code(raw_response)
+
+            # React tool loop: retry subprocess execution on transient failures
+            test_results = await self.react_tool_loop(
+                action=lambda: self._run_tests_async(
+                    state["generated_code"],
+                    generated_tests,
+                    pipeline_name=state["etl_spec"].pipeline_name,
+                ),
+                max_attempts=2,
+                errors_to_catch=(subprocess.TimeoutExpired, OSError),
+                agent_name="test_agent",
+                action_name="pytest_subprocess",
             )
 
             logger.info(
@@ -238,3 +236,11 @@ class TestAgent:
         except Exception as e:
             logger.error("test_agent_failed", error=str(e))
             raise TestGenerationError(f"Test execution failed: {e}") from e
+
+    async def _run_tests_async(self, pipeline_code: str, test_code: str, pipeline_name: str) -> TestResult:
+        """Wrap the synchronous _run_tests in a coroutine for react_tool_loop."""
+        import asyncio
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, self._run_tests, pipeline_code, test_code, pipeline_name
+        )

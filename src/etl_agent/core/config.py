@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # Airflow
+    # Airflow — set airflow_enabled=false to skip triggering (e.g. when Airflow is not deployed)
+    airflow_enabled: bool = False
     airflow_api_url: str = "http://localhost:8080"
     airflow_dag_id: str = "etl_agent_pipeline"
     airflow_username: str = "admin"

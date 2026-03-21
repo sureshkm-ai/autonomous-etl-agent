@@ -42,6 +42,9 @@ async def _run_pipeline_background(story: UserStory, run_id: str) -> None:
     from etl_agent.agents.orchestrator import run_pipeline
     try:
         result = await run_pipeline(story)
-        logger.info("background_pipeline_complete", run_id=run_id, status=result.status.value)
+        status = result.get("status") if isinstance(result, dict) else result.status
+        # Normalise to the plain string value (e.g. "DONE" not "RunStatus.DONE")
+        status_str = status.value if hasattr(status, "value") else str(status)
+        logger.info("background_pipeline_complete", run_id=run_id, status=status_str)
     except Exception as e:
         logger.error("background_pipeline_failed", run_id=run_id, error=str(e))
