@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     github_token: str
     github_target_repo: str
 
-    # AWS
-    aws_access_key_id: str
-    aws_secret_access_key: str
+    # AWS — optional so EC2 IAM instance profiles work without explicit credentials
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
     aws_region: str = "us-east-1"
     aws_endpoint_url: str | None = None
     aws_s3_raw_bucket: str = "etl-agent-raw"

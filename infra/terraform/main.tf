@@ -19,6 +19,8 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 # ── S3 Buckets ────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "raw" {
