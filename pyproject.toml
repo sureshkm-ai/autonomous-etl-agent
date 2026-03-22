@@ -69,6 +69,13 @@ dependencies = [
 
   # ── Packaging (for .whl generation) ───────────────────────────────────────
   "build>=1.2.0",
+  "setuptools>=75.0.0",
+  "wheel>=0.45.0",
+
+  # ── Testing runtime (TestAgent runs pytest against generated code at runtime) ─
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=6.0.0",
 ]
 
 [project.scripts]
@@ -80,7 +87,8 @@ dev = [
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",
   "pytest-cov>=6.0.0",
-  "moto[s3]>=5.0.0",
+  # S3 tests now use LocalStack (see infra/docker-compose.yml).
+  # moto[s3] removed — no longer needed.
   "fakeredis>=2.26.0",
 
   # ── Type Checking ──────────────────────────────────────────────────────────
@@ -109,7 +117,8 @@ dev-dependencies = [
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",
   "pytest-cov>=6.0.0",
-  "moto[s3]>=5.0.0",
+  # S3 integration tests use LocalStack (see infra/docker-compose.yml).
+  # moto[s3] removed — no longer needed.
   "fakeredis>=2.26.0",
   "mypy>=1.13.0",
   "types-PyYAML>=6.0.12",
@@ -166,7 +175,7 @@ markers = [
   "unit: fast isolated unit tests",
   "integration: integration tests with mocked external services",
 ]
-addopts = "--cov=src/etl_agent --cov-report=term-missing --cov-report=html"
+addopts = "--cov=src/etl_agent --cov-report=term-missing --cov-report=html -p no:langsmith_plugin"
 
 # ── Coverage ───────────────────────────────────────────────────────────────────
 [tool.coverage.run]

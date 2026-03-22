@@ -34,7 +34,10 @@ RUN apt-get update && \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-arm64
+# Resolve JAVA_HOME dynamically so the same image works on amd64 and arm64
+RUN JAVA_BIN=$(readlink -f /usr/bin/java) && \
+    echo "export JAVA_HOME=${JAVA_BIN%/bin/java}" >> /etc/environment
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Create non-root user for security
@@ -48,6 +51,9 @@ COPY --from=builder /app/src /app/src
 
 # Copy config and other runtime files
 COPY config/ ./config/
+
+# Give the non-root user ownership of everything in /app
+RUN chown -R etlagent:etlagent /app
 
 # Ensure the venv is on PATH
 ENV PATH="/app/.venv/bin:${PATH}"

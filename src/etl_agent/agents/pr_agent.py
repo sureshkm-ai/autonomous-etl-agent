@@ -1,24 +1,25 @@
 """
 PR Agent — creates a GitHub Issue, commits generated code, and opens a PR.
-Uses Claude to write intelligent commit messages.
+Inherits ReactAgent:
+  - LLM loop generates the commit message (retries on empty/malformed output).
+  - Tool loop retries GitHub API calls on transient network/rate-limit errors.
 """
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from etl_agent.agents.base import ReactAgent
 from etl_agent.core.config import get_settings
 from etl_agent.core.exceptions import PRCreationError
 from etl_agent.core.logging import get_logger
 from etl_agent.core.models import RunStatus
 from etl_agent.core.state import GraphState
-from etl_agent.tools.github_tools import GitHubTools  # module-level import for patching
+from etl_agent.tools.github_tools import GitHubTools
 
 logger = get_logger(__name__)
 
 
 class _LLMWrapper:
-    """Thin LangChain-style wrapper so tests can mock agent._llm.ainvoke."""
-
     def __init__(self, settings: Any) -> None:
         self._settings = settings
 
@@ -40,18 +41,15 @@ class _LLMWrapper:
         return _Resp()
 
 
-class PRAgent:
+class PRAgent(ReactAgent):
     """Agent 4: Creates GitHub Issue + branch + commit + PR."""
 
-    _llm: Any = None  # class-level default; lazy-init in _generate_commit_message
+    _llm: Any = None
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        # Do NOT set self._llm here; lazy-init in _generate_commit_message so
-        # the class-level patch applied by integration tests remains visible.
 
     async def __call__(self, state: GraphState) -> dict[str, Any]:
-        """Make the agent callable as ``await agent(state)``."""
         try:
             return await self.run(state)
         except Exception as e:
@@ -59,10 +57,31 @@ class PRAgent:
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60), reraise=True)
-    async def _generate_commit_message(self, state: GraphState) -> str:
-        """Use Claude to generate an intelligent commit message."""
+    async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
+        response = await self._llm.ainvoke(messages)
+        return response.content
+
+    @staticmethod
+    def _validate_commit_msg(raw: str) -> tuple[bool, str]:
+        msg = raw.strip()
+        if not msg:
+            return False, "Empty commit message"
+        if len(msg) > 200:
+            return False, f"Commit message too long ({len(msg)} chars); keep under 72 for the subject line"
+        return True, ""
+
+    @staticmethod
+    def _fix_commit_msg(raw: str, error: str, attempt: int) -> str:
+        return (
+            f"The commit message you wrote has an issue: {error}\n\n"
+            "Please write a concise commit message in the format:\n"
+            "  <type>(<scope>): <subject>\n\n"
+            "Where type is feat/fix/refactor/test. Keep the subject under 72 characters."
+        )
+
+    async def _generate_commit_message(self, state: GraphState) -> str:
         etl_spec = state["etl_spec"]
         prompt = (
             f"Write a concise, professional git commit message for a PySpark ETL pipeline.\n\n"
@@ -72,14 +91,19 @@ class PRAgent:
             f"Format: <type>(<scope>): <subject>\n\n"
             f"Where type is feat/fix/refactor/test. Keep it under 72 characters."
         )
-        response = await self._llm.ainvoke([{"role": "user", "content": prompt}])
-        return response.content.strip()
+        raw = await self.react_llm_loop(
+            initial_messages=[{"role": "user", "content": prompt}],
+            call_llm=self._call_llm,
+            validate=self._validate_commit_msg,
+            build_fix_message=self._fix_commit_msg,
+            agent_name="pr_agent",
+        )
+        return raw.strip()
 
     async def run(self, state: GraphState) -> dict[str, Any]:
-        from github import GithubException  # type: ignore[import]
+        from github import GithubException
 
         etl_spec = state["etl_spec"]
-        # user_story is optional — tests may not provide it
         story = state.get("user_story")
         logger.info("pr_agent_started", pipeline=etl_spec.pipeline_name)
 
@@ -89,7 +113,6 @@ class PRAgent:
                 target_repo=self.settings.github_target_repo,
             )
 
-            # Step 1: Create GitHub Issue
             if story:
                 issue_title = f"[ETL] {story.title}"
                 issue_body = (
@@ -114,20 +137,24 @@ class PRAgent:
                 pr_title = f"[ETL Agent] {etl_spec.pipeline_name}"
                 story_ref = f"Pipeline: `{etl_spec.pipeline_name}`"
 
-            issue_url = gh.create_issue(
-                title=issue_title,
-                body=issue_body,
-                labels=issue_labels,
+            # React tool loop for each GitHub operation
+            issue_url = await self.react_tool_loop(
+                action=lambda: gh.create_issue(title=issue_title, body=issue_body, labels=issue_labels),
+                errors_to_catch=(GithubException, Exception),
+                agent_name="pr_agent",
+                action_name="create_issue",
             )
             logger.info("github_issue_created", url=issue_url)
 
-            # Step 2: Create branch (returns name; idempotent)
-            branch_name = gh.create_branch(branch_name)
+            branch_name = await self.react_tool_loop(
+                action=lambda: gh.create_branch(branch_name),
+                errors_to_catch=(GithubException, Exception),
+                agent_name="pr_agent",
+                action_name="create_branch",
+            )
 
-            # Step 3: Generate commit message via Claude
             commit_message = await self._generate_commit_message(state)
 
-            # Step 4: Commit generated files
             files: dict[str, str] = {}
             if state.get("generated_code"):
                 files[f"src/generated_pipelines/{etl_spec.pipeline_name}.py"] = state["generated_code"]
@@ -136,9 +163,13 @@ class PRAgent:
             if state.get("generated_readme"):
                 files[f"src/generated_pipelines/{etl_spec.pipeline_name}_README.md"] = state["generated_readme"]
             if files:
-                gh.commit_files(branch_name, files, commit_message)
+                await self.react_tool_loop(
+                    action=lambda: gh.commit_files(branch_name, files, commit_message),
+                    errors_to_catch=(GithubException, Exception),
+                    agent_name="pr_agent",
+                    action_name="commit_files",
+                )
 
-            # Step 5: Open PR
             test_summary = ""
             if state.get("test_results"):
                 tr = state["test_results"]
@@ -148,16 +179,21 @@ class PRAgent:
                     f"Coverage: {tr.coverage_pct:.0f}%"
                 )
 
-            pr_url = gh.create_pull_request(
-                title=pr_title,
-                body=(
-                    f"## Summary\nAuto-generated PySpark pipeline: **{etl_spec.pipeline_name}**\n\n"
-                    f"## Pipeline\n`{etl_spec.pipeline_name}`\n\n"
-                    f"## Operations\n{', '.join(op.value for op in etl_spec.operations)}"
-                    + test_summary
-                    + f"\n\n*Auto-generated by Autonomous ETL Agent | {story_ref}*"
+            pr_url = await self.react_tool_loop(
+                action=lambda: gh.create_pull_request(
+                    title=pr_title,
+                    body=(
+                        f"## Summary\nAuto-generated PySpark pipeline: **{etl_spec.pipeline_name}**\n\n"
+                        f"## Pipeline\n`{etl_spec.pipeline_name}`\n\n"
+                        f"## Operations\n{', '.join(op.value for op in etl_spec.operations)}"
+                        + test_summary
+                        + f"\n\n*Auto-generated by Autonomous ETL Agent | {story_ref}*"
+                    ),
+                    head_branch=branch_name,
                 ),
-                head_branch=branch_name,
+                errors_to_catch=(GithubException, Exception),
+                agent_name="pr_agent",
+                action_name="create_pull_request",
             )
             logger.info("pr_created", url=pr_url)
 
@@ -168,6 +204,6 @@ class PRAgent:
                 "status": RunStatus.DEPLOYING,
             }
 
-        except GithubException as e:
+        except Exception as e:
             logger.error("pr_agent_failed", error=str(e))
             raise PRCreationError(f"PR creation failed: {e}") from e

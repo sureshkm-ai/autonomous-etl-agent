@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous ETL Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.25s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .nav-active { background: #1e293b; color: #f8fafc !important; }
+    .progress-bar { transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+    .stage-row { transition: opacity 0.3s ease; }
+  </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 antialiased">
+
+<!-- ═══════════════════════════════ APP SHELL ═══════════════════════════════ -->
+<div class="flex h-full min-h-screen">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside class="w-60 bg-slate-900 flex flex-col flex-shrink-0 fixed inset-y-0 left-0 z-30">
+    <!-- Logo -->
+    <div class="px-5 py-5 border-b border-slate-700/60">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center shadow-md">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-white font-semibold text-sm leading-tight">ETL Agent</div>
+          <div class="text-slate-400 text-xs">Autonomous Pipelines</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <p class="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Menu</p>
+
+      <button onclick="navigate('dashboard')" id="nav-dashboard"
+        class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-left">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Dashboard
+      </button>
+
+      <button onclick="navigate('new')" id="nav-new"
+        class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-left">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        New Pipeline
+      </button>
+
+      <button onclick="navigate('docs')" id="nav-docs"
+        class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-left">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        API Docs
+      </button>
+    </nav>
+
+    <!-- API Key + connection status -->
+    <div class="px-3 py-4 border-t border-slate-700/60 space-y-3">
+      <div id="api-key-section">
+        <p class="text-xs text-slate-500 mb-1.5 font-medium">API Key</p>
+        <div class="flex gap-1.5">
+          <input id="sidebar-api-key" type="password" placeholder="Enter API key…"
+            class="flex-1 min-w-0 text-xs bg-slate-800 border border-slate-700 text-slate-200 rounded-md px-2 py-1.5 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          <button onclick="saveApiKey()"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2 py-1.5 rounded-md transition-colors">Save</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span id="conn-dot" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+        <span id="conn-text" class="text-slate-500">Checking…</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────────────── -->
+  <div class="flex-1 flex flex-col min-w-0 ml-60">
+
+    <!-- Top bar -->
+    <header class="bg-white border-b border-slate-200 px-8 h-14 flex items-center justify-between flex-shrink-0 sticky top-0 z-20">
+      <div id="page-heading" class="font-semibold text-slate-800 text-base"></div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-400">v0.1.0</span>
+        <a href="/docs" target="_blank"
+          class="text-xs text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+          Swagger
+        </a>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-auto">
+      <div id="page" class="p-8 max-w-7xl mx-auto"></div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ TOAST ═══════════════════════════════════ -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+<!-- ═══════════════════════════════ JAVASCRIPT ══════════════════════════════ -->
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const S = {
+  apiKey: localStorage.getItem('etl_api_key') || '',
+  page: 'dashboard',
+  pollId: null,
+  activeRunId: null,
+};
+
+const STAGES = [
+  { key: 'story_parser', label: 'Story Parser',  desc: 'Parsing user story → structured ETL spec',      triggerStatus: 'CODING'      },
+  { key: 'coding_agent', label: 'Coding Agent',  desc: 'Generating PySpark pipeline code',               triggerStatus: 'TESTING'     },
+  { key: 'test_agent',   label: 'Test Agent',    desc: 'Writing & running pytest unit tests',            triggerStatus: 'PR_CREATING' },
+  { key: 'pr_agent',     label: 'PR Agent',      desc: 'Opening GitHub branch, commit & pull request',  triggerStatus: 'DEPLOYING'   },
+  { key: 'deploy_agent', label: 'Deploy Agent',  desc: 'Packaging .whl artifact & uploading to S3',     triggerStatus: 'DONE'        },
+];
+
+const STATUS_ORDER = ['PENDING', 'CODING', 'TESTING', 'PR_CREATING', 'DEPLOYING', 'DONE', 'FAILED'];
+
+function stagesDoneCount(status) {
+  const map = { PENDING: 0, CODING: 1, TESTING: 2, PR_CREATING: 3, DEPLOYING: 4, DONE: 5, FAILED: 0 };
+  return map[status] ?? 0;
+}
+
+// ─── API helpers ─────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': S.apiKey, ...(opts.headers || {}) },
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+async function healthCheck() {
+  try {
+    await fetch('/api/v1/health');
+    set('conn-dot', 'className', 'w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot');
+    set('conn-text', 'textContent', 'Connected');
+  } catch {
+    set('conn-dot', 'className', 'w-1.5 h-1.5 rounded-full bg-red-400');
+    set('conn-text', 'textContent', 'Unreachable');
+  }
+}
+
+// ─── DOM utils ───────────────────────────────────────────────────────────────
+function set(id, prop, val) { const el = document.getElementById(id); if (el) el[prop] = val; }
+function el(id) { return document.getElementById(id); }
+function html(id, content) { const e = el(id); if (e) e.innerHTML = content; }
+
+function toast(msg, type = 'info') {
+  const c = el('toast-container');
+  const colors = { error: 'bg-red-600', success: 'bg-emerald-600', info: 'bg-slate-800' };
+  const t = document.createElement('div');
+  t.className = `pointer-events-auto fade-in ${colors[type]} text-white text-sm font-medium px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 max-w-sm`;
+  t.innerHTML = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4500);
+}
+
+// ─── Router ──────────────────────────────────────────────────────────────────
+function navigate(page, params = {}) {
+  if (S.pollId) { clearInterval(S.pollId); S.pollId = null; }
+  S.page = page;
+  S.params = params;
+
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+  const nb = el(`nav-${page}`);
+  if (nb) nb.classList.add('nav-active');
+
+  const titles = { dashboard: 'Dashboard', new: 'New Pipeline', docs: 'API Docs', run: 'Run Details' };
+  set('page-heading', 'textContent', titles[page] || page);
+
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'new')   renderNew();
+  else if (page === 'run')   renderRunDetail(params.id);
+  else if (page === 'docs')  { window.open('/docs', '_blank'); navigate('dashboard'); }
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+async function renderDashboard() {
+  html('page', spinner('Loading runs…'));
+  let runs = [];
+  try { runs = await api('/api/v1/runs'); } catch { /* no runs yet */ }
+
+  const done    = runs.filter(r => r.status === 'DONE').length;
+  const failed  = runs.filter(r => r.status === 'FAILED').length;
+  const running = runs.filter(r => !['DONE','FAILED'].includes(r.status)).length;
+
+  el('page').innerHTML = `
+  <div class="fade-in space-y-6">
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      ${statCard('Total Runs', runs.length, 'indigo', iconChart())}
+      ${statCard('Completed', done, 'emerald', iconCheck())}
+      ${statCard('Running', running, 'violet', iconBolt())}
+      ${statCard('Failed', failed, 'red', iconAlert())}
+    </div>
+
+    <!-- Runs table -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 class="font-semibold text-slate-800">Pipeline Runs</h2>
+          <p class="text-xs text-slate-400 mt-0.5">All submissions in this session</p>
+        </div>
+        <button onclick="navigate('new')"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+          </svg>
+          New Pipeline
+        </button>
+      </div>
+
+      ${runs.length === 0 ? emptyState() : `
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50/80 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-100">
+              <th class="px-6 py-3 text-left font-semibold">Story</th>
+              <th class="px-6 py-3 text-left font-semibold">Status</th>
+              <th class="px-6 py-3 text-left font-semibold">Tests</th>
+              <th class="px-6 py-3 text-left font-semibold">Pull Request</th>
+              <th class="px-6 py-3 text-left font-semibold">Submitted</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${runs.map(runRow).join('')}
+          </tbody>
+        </table>
+        </div>
+      `}
+    </div>
+  </div>`;
+
+  // Auto-refresh while pipelines are running
+  if (running > 0) S.pollId = setInterval(renderDashboard, 4000);
+}
+
+function runRow(r) {
+  const pr = r.github_pr_url
+    ? `<a href="${r.github_pr_url}" target="_blank"
+         class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+         ${iconGitHub('w-3 h-3')} PR #${r.github_pr_url.split('/pull/')[1] || '—'}</a>`
+    : `<span class="text-slate-300">—</span>`;
+  const tests = r.test_results
+    ? `<span class="text-slate-700">${r.test_results.passed_tests}/${r.test_results.total_tests}</span>
+       <span class="text-slate-400 text-xs ml-1">${(r.test_results.coverage_pct||0).toFixed(0)}%</span>`
+    : `<span class="text-slate-300">—</span>`;
+  const sub = r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—';
+
+  return `
+  <tr class="hover:bg-slate-50 transition-colors cursor-pointer group"
+      onclick="navigate('run', {id:'${r.run_id}'})">
+    <td class="px-6 py-3.5">
+      <div class="font-medium text-slate-800 truncate max-w-xs">${r.story_title || r.story_id}</div>
+      <div class="text-xs text-slate-400 font-mono mt-0.5">${r.run_id.substring(0,8)}…</div>
+    </td>
+    <td class="px-6 py-3.5">${badge(r.status)}</td>
+    <td class="px-6 py-3.5">${tests}</td>
+    <td class="px-6 py-3.5">${pr}</td>
+    <td class="px-6 py-3.5 text-xs text-slate-500">${sub}</td>
+    <td class="px-6 py-3.5 text-right">
+      <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </td>
+  </tr>`;
+}
+
+// ─── New Pipeline ─────────────────────────────────────────────────────────────
+function renderNew() {
+  el('page').innerHTML = `
+  <div class="fade-in">
+    ${!S.apiKey ? apiKeyBanner() : ''}
+    <div id="main-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6 ${!S.apiKey ? 'opacity-50 pointer-events-none' : ''}">
+
+      <!-- ── Form panel ── -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="font-semibold text-slate-800">Story Details</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Describe the ETL pipeline you want the agent to build</p>
+        </div>
+        <form id="story-form" onsubmit="handleSubmit(event)" class="p-6 space-y-4">
+
+          <div class="grid grid-cols-2 gap-3">
+            ${field('Story ID',  'story_id',    'amazon-rfm-001',                  true)}
+            ${field('Title',     'story_title', 'RFM Customer Segmentation',       true)}
+          </div>
+          ${textarea('Description', 'description',
+              'Read orders from S3, compute recency / frequency / monetary scores, segment into tiers…', true)}
+
+          <!-- Acceptance Criteria -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-2">Acceptance Criteria</label>
+            <div id="criteria-list" class="space-y-2">
+              ${criteriaRow('Output must contain RFM scores per customer')}
+            </div>
+            <button type="button" onclick="addCriteria()"
+              class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add criterion
+            </button>
+          </div>
+
+          <!-- Source / Target -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-600">Source Path <span class="text-red-400">*</span></label>
+              <input name="source_path" required placeholder="s3://bucket/input/"
+                class="inp w-full" />
+              ${formatSel('source_format')}
+            </div>
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-600">Target Path <span class="text-red-400">*</span></label>
+              <input name="target_path" required placeholder="s3://bucket/output/"
+                class="inp w-full" />
+              ${formatSel('target_format')}
+              <select name="target_mode" class="inp w-full">
+                <option value="overwrite">overwrite</option>
+                <option value="append">append</option>
+                <option value="merge">merge</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Transformations -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-2">Transformations</label>
+            <div id="transform-list" class="space-y-3"></div>
+            <button type="button" onclick="addTransform()"
+              class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add transformation
+            </button>
+          </div>
+
+          ${field('Tags (comma-separated)', 'tags', 'pyspark, s3, delta, rfm')}
+
+          <div class="pt-1">
+            <button id="run-btn" type="submit"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm text-sm">
+              ${iconBolt('w-4 h-4')} Run Pipeline
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ── Tracker panel ── -->
+      <div id="tracker" class="fade-in">
+        ${emptyTracker()}
+      </div>
+    </div>
+  </div>`;
+}
+
+function field(label, name, placeholder, required = false) {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-600 mb-1.5">${label}${required ? ' <span class="text-red-400">*</span>' : ''}</label>
+    <input name="${name}" placeholder="${placeholder}" ${required ? 'required' : ''}
+      class="inp w-full" />
+  </div>`;
+}
+function textarea(label, name, placeholder, required = false) {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-600 mb-1.5">${label}${required ? ' <span class="text-red-400">*</span>' : ''}</label>
+    <textarea name="${name}" rows="3" placeholder="${placeholder}" ${required ? 'required' : ''}
+      class="inp w-full resize-none"></textarea>
+  </div>`;
+}
+function formatSel(name) {
+  return `<select name="${name}" class="inp w-full">
+    <option value="parquet">parquet</option>
+    <option value="delta">delta</option>
+    <option value="csv">csv</option>
+    <option value="json">json</option>
+  </select>`;
+}
+function criteriaRow(val = '') {
+  return `<div class="flex gap-2 items-center">
+    <input type="text" name="criteria" value="${val}" placeholder="e.g. Output must include RFM scores"
+      class="inp flex-1 text-sm" />
+    <button type="button" onclick="this.closest('.flex').remove()"
+      class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>`;
+}
+function addCriteria() {
+  const list = el('criteria-list');
+  const div = document.createElement('div');
+  div.innerHTML = criteriaRow();
+  list.appendChild(div.firstElementChild);
+}
+
+function transformRow(op='filter', name='', desc='', params='') {
+  const ops = ['filter','aggregate','enrich','join','dedupe','upsert','fill_null','rename','cast','sort'];
+  const opts = ops.map(o => `<option value="${o}" ${o===op?'selected':''}>${o}</option>`).join('');
+  return `<div class="transform-row border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50/50">
+    <div class="flex gap-2 items-start">
+      <select name="t_operation" class="inp text-xs w-32 flex-shrink-0">${opts}</select>
+      <input type="text" name="t_name" value="${name}" placeholder="step name (e.g. remove_cancelled_orders)"
+        class="inp flex-1 text-xs" />
+      <button type="button" onclick="this.closest('.transform-row').remove()"
+        class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 mt-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <input type="text" name="t_description" value="${desc}" placeholder="What this step does…"
+      class="inp w-full text-xs" />
+    <textarea name="t_params" rows="2" placeholder='Optional params JSON, e.g. {"condition": "status = \\'ACTIVE\\'"}'
+      class="inp w-full text-xs resize-none font-mono">${params}</textarea>
+  </div>`;
+}
+function addTransform() {
+  const list = el('transform-list');
+  const div = document.createElement('div');
+  div.innerHTML = transformRow();
+  list.appendChild(div.firstElementChild);
+}
+
+// ─── Form submit ─────────────────────────────────────────────────────────────
+async function handleSubmit(e) {
+  e.preventDefault();
+  if (!S.apiKey) { toast('⚠️ Enter your API key first', 'error'); return; }
+
+  const f = e.target;
+  const criteria = [...f.querySelectorAll('[name="criteria"]')]
+    .map(i => i.value.trim()).filter(Boolean);
+  const tags = f.tags.value.split(',').map(t => t.trim()).filter(Boolean);
+
+  // Collect transformations from dynamic rows
+  const transformations = [...document.querySelectorAll('.transform-row')].map(row => {
+    const op   = row.querySelector('[name="t_operation"]').value;
+    const name = row.querySelector('[name="t_name"]').value.trim();
+    const desc = row.querySelector('[name="t_description"]').value.trim();
+    const raw  = row.querySelector('[name="t_params"]').value.trim();
+    let params = {};
+    if (raw) { try { params = JSON.parse(raw); } catch { params = { raw }; } }
+    return { operation: op, name, description: desc, params };
+  });
+
+  const body = {
+    id: f.story_id.value.trim(),
+    title: f.story_title.value.trim(),
+    description: f.description.value.trim(),
+    acceptance_criteria: criteria,
+    source: { path: f.source_path.value.trim(), format: f.source_format.value },
+    target: { path: f.target_path.value.trim(), format: f.target_format.value, mode: f.target_mode.value },
+    transformations,
+    tags,
+  };
+
+  const btn = el('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="w-4 h-4 spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+  </svg> Starting…`;
+
+  try {
+    const res = await api('/api/v1/stories', { method: 'POST', body: JSON.stringify(body) });
+    S.activeRunId = res.run_id;
+    toast('✅ Pipeline started!', 'success');
+    btn.disabled = false;
+    btn.innerHTML = `${iconBolt('w-4 h-4')} Run Pipeline`;
+    startPolling(res.run_id);
+  } catch (err) {
+    toast(`❌ ${err.message}`, 'error');
+    btn.disabled = false;
+    btn.innerHTML = `${iconBolt('w-4 h-4')} Run Pipeline`;
+  }
+}
+
+// ─── Tracker ─────────────────────────────────────────────────────────────────
+function startPolling(runId) {
+  if (S.pollId) clearInterval(S.pollId);
+  S.pollId = setInterval(async () => {
+    try {
+      const run = await api(`/api/v1/runs/${runId}`);
+      renderTracker(run);
+      if (['DONE','FAILED'].includes(run.status)) {
+        clearInterval(S.pollId); S.pollId = null;
+        if (run.status === 'DONE') toast('🎉 Pipeline completed!', 'success');
+        else toast('❌ Pipeline failed', 'error');
+      }
+    } catch {}
+  }, 2000);
+  // Render immediately with PENDING state
+  renderTracker({ run_id: runId, status: 'PENDING', story_title: 'Processing…' });
+}
+
+function renderTracker(run) {
+  const t = el('tracker');
+  if (!t) return;
+  const done  = run.status === 'DONE';
+  const fail  = run.status === 'FAILED';
+  const doneN = stagesDoneCount(run.status);
+  const pct   = done ? 100 : Math.round(doneN / 5 * 100);
+
+  t.innerHTML = `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in h-full flex flex-col">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="min-w-0">
+          <h2 class="font-semibold text-slate-800 truncate">${run.story_title || run.story_id || 'Pipeline'}</h2>
+          <div class="text-xs text-slate-400 font-mono mt-0.5">${(run.run_id||'').substring(0,8)}…</div>
+        </div>
+        ${badge(run.status)}
+      </div>
+      <!-- Progress bar -->
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Progress</span><span>${pct}%</span>
+        </div>
+        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}"
+               style="width:${pct}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stages -->
+    <div class="flex-1 p-5 space-y-1 overflow-y-auto">
+      ${STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('')}
+    </div>
+
+    <!-- Results -->
+    ${done ? resultsCard(run) : ''}
+    ${fail && run.error_message ? errorCard(run.error_message) : ''}
+  </div>`;
+}
+
+function stageRow(stage, idx, doneN, fail, done, run) {
+  const isComplete = idx < doneN;
+  const isActive   = !fail && !done && idx === doneN;
+  const isFailed   = fail && idx === doneN;
+  const isFuture   = idx > doneN;
+
+  let icon, textColor;
+  if (isComplete) {
+    icon = `<div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>`;
+    textColor = '';
+  } else if (isActive) {
+    icon = `<div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-3.5 h-3.5 text-indigo-600 spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>`;
+    textColor = '';
+  } else if (isFailed) {
+    icon = `<div class="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></div>`;
+    textColor = '';
+  } else {
+    icon = `<div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+      <span class="text-xs font-semibold text-slate-400">${idx+1}</span></div>`;
+    textColor = 'opacity-40';
+  }
+
+  // Stage-specific detail
+  let detail = '';
+  if (isComplete) {
+    if (stage.key === 'test_agent' && run.test_results) {
+      const tr = run.test_results;
+      const c = tr.coverage_pct ? tr.coverage_pct.toFixed(0) : '—';
+      detail = `<span class="text-xs text-emerald-600 font-medium">
+        ${tr.passed_tests}/${tr.total_tests} tests passed · ${c}% coverage</span>`;
+    } else if (stage.key === 'pr_agent' && run.github_pr_url) {
+      const n = run.github_pr_url.split('/pull/')[1];
+      detail = `<a href="${run.github_pr_url}" target="_blank"
+        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+        PR #${n} opened →</a>`;
+    } else if (stage.key === 'deploy_agent' && run.s3_artifact_url) {
+      detail = `<span class="text-xs text-slate-400 font-mono break-all">${run.s3_artifact_url}</span>`;
+    }
+  }
+
+  return `
+  <div class="stage-row flex items-start gap-3 py-2 px-1 rounded-lg ${isActive ? 'bg-indigo-50/60' : ''} ${textColor}">
+    ${icon}
+    <div class="flex-1 min-w-0 pt-0.5">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-slate-700">${stage.label}</span>
+        ${isActive  ? '<span class="text-xs text-indigo-500 font-semibold">Running…</span>' : ''}
+        ${isComplete? '<span class="text-xs text-emerald-600 font-semibold">✓ Done</span>' : ''}
+        ${isFailed  ? '<span class="text-xs text-red-500 font-semibold">✗ Failed</span>' : ''}
+      </div>
+      <p class="text-xs text-slate-400 mt-0.5">${stage.desc}</p>
+      ${detail ? `<div class="mt-1">${detail}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function resultsCard(run) {
+  return `
+  <div class="mx-5 mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2.5">
+    <div class="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Pipeline Completed Successfully
+    </div>
+    ${run.github_pr_url ? `
+    <div class="flex items-center gap-2">
+      ${iconGitHub('w-3.5 h-3.5 text-slate-500 flex-shrink-0')}
+      <a href="${run.github_pr_url}" target="_blank"
+        class="text-sm text-slate-700 hover:text-indigo-600 transition-colors break-all">${run.github_pr_url}</a>
+    </div>` : ''}
+    ${run.s3_artifact_url ? `
+    <div class="flex items-center gap-2">
+      <svg class="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+      </svg>
+      <span class="text-xs text-slate-600 font-mono break-all">${run.s3_artifact_url}</span>
+    </div>` : ''}
+  </div>`;
+}
+
+function errorCard(msg) {
+  return `
+  <div class="mx-5 mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
+    <div class="flex items-center gap-2 text-red-700 font-semibold text-sm mb-1">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Pipeline Failed
+    </div>
+    <p class="text-xs text-red-600 break-words">${msg}</p>
+  </div>`;
+}
+
+function emptyTracker() {
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center p-10 h-full min-h-64">
+    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+      <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9a2 2 0 00-2-2H9m0 12H5a2 2 0 01-2-2V9a2 2 0 012-2h4"/>
+      </svg>
+    </div>
+    <h3 class="text-sm font-semibold text-slate-700 mb-1">No Active Pipeline</h3>
+    <p class="text-xs text-slate-400 max-w-xs">Submit a story on the left to see live pipeline progress here</p>
+  </div>`;
+}
+
+// ─── Run Detail ───────────────────────────────────────────────────────────────
+async function renderRunDetail(runId) {
+  html('page', spinner('Loading run…'));
+  try {
+    const run = await api(`/api/v1/runs/${runId}`);
+    el('page').innerHTML = `
+    <div class="fade-in space-y-6">
+      <!-- Breadcrumb -->
+      <div class="flex items-center gap-2 text-sm">
+        <button onclick="navigate('dashboard')"
+          class="text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Dashboard
+        </button>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-600 font-medium">${run.story_title || run.story_id}</span>
+        ${badge(run.status)}
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div id="detail-stages">${buildStagesPanel(run)}</div>
+        <div class="space-y-5">
+          ${metaPanel(run)}
+          ${run.test_results ? testPanel(run.test_results) : ''}
+        </div>
+      </div>
+    </div>`;
+
+    if (!['DONE','FAILED'].includes(run.status)) {
+      S.pollId = setInterval(async () => {
+        const updated = await api(`/api/v1/runs/${runId}`);
+        html('detail-stages', buildStagesPanel(updated));
+        if (['DONE','FAILED'].includes(updated.status)) clearInterval(S.pollId);
+      }, 2000);
+    }
+  } catch(err) {
+    html('page', `<div class="text-red-500 text-sm">${err.message}</div>`);
+  }
+}
+
+function buildStagesPanel(run) {
+  const done = run.status === 'DONE', fail = run.status === 'FAILED';
+  const doneN = stagesDoneCount(run.status);
+  const pct = done ? 100 : Math.round(doneN / 5 * 100);
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+      <h2 class="font-semibold text-slate-800 mb-3">Pipeline Stages</h2>
+      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="progress-bar h-full ${fail ? 'bg-red-400' : 'bg-indigo-500'} rounded-full"
+             style="width:${pct}%"></div>
+      </div>
+    </div>
+    <div class="p-5 space-y-1">
+      ${STAGES.map((s,i) => stageRow(s, i, doneN, fail, done, run)).join('')}
+    </div>
+    ${done ? resultsCard(run) : ''}
+    ${fail && run.error_message ? errorCard(run.error_message) : ''}
+  </div>`;
+}
+
+function metaPanel(run) {
+  const rows = [
+    ['Run ID',       `<span class="font-mono text-xs">${run.run_id}</span>`],
+    ['Story ID',     run.story_id || '—'],
+    ['Status',       badge(run.status)],
+    ['Submitted',    run.submitted_at ? new Date(run.submitted_at).toLocaleString() : '—'],
+    ['Completed',    run.completed_at ? new Date(run.completed_at).toLocaleString() : '—'],
+    ['Current Stage', run.current_stage ? `<span class="font-mono text-xs">${run.current_stage}</span>` : '—'],
+  ];
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+      <h2 class="font-semibold text-slate-800 text-sm">Run Metadata</h2>
+    </div>
+    <dl class="divide-y divide-slate-100">
+      ${rows.map(([k,v]) => `
+        <div class="px-5 py-2.5 flex items-center justify-between gap-4">
+          <dt class="text-xs font-medium text-slate-500 flex-shrink-0">${k}</dt>
+          <dd class="text-sm text-slate-700 text-right">${v}</dd>
+        </div>`).join('')}
+    </dl>
+  </div>`;
+}
+
+function testPanel(tr) {
+  const cov = (tr.coverage_pct || 0).toFixed(1);
+  const covColor = tr.coverage_pct >= 70 ? 'bg-emerald-500' : tr.coverage_pct >= 40 ? 'bg-amber-400' : 'bg-red-400';
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+      <h2 class="font-semibold text-slate-800 text-sm">Test Results</h2>
+    </div>
+    <div class="p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-slate-600">Tests Passed</span>
+        <span class="font-semibold text-slate-800">${tr.passed_tests} / ${tr.total_tests}</span>
+      </div>
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1.5">
+          <span class="text-slate-600">Coverage</span>
+          <span class="font-semibold text-slate-800">${cov}%</span>
+        </div>
+        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="${covColor} h-full rounded-full progress-bar" style="width:${cov}%"></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 pt-1">
+        ${tr.passed
+          ? `<span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full">✓ All tests passed</span>`
+          : `<span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 px-2 py-1 rounded-full">✗ Some tests failed</span>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── API Key ─────────────────────────────────────────────────────────────────
+function apiKeyBanner() {
+  return `
+  <div class="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-semibold text-amber-800 mb-0.5">API Key Required</p>
+      <p class="text-xs text-amber-600">Enter your <code class="font-mono bg-amber-100 px-1 rounded">API_KEY</code> in the sidebar to enable submissions.</p>
+    </div>
+  </div>`;
+}
+
+function saveApiKey() {
+  const k = el('sidebar-api-key')?.value?.trim();
+  if (k) {
+    S.apiKey = k;
+    localStorage.setItem('etl_api_key', k);
+    toast('✅ API key saved', 'success');
+    if (S.page === 'new') renderNew();
+  }
+}
+
+// ─── Shared UI components ────────────────────────────────────────────────────
+function badge(status) {
+  const cfg = {
+    PENDING:     ['bg-slate-100 text-slate-600',    'bg-slate-400',   'Pending'],
+    CODING:      ['bg-blue-100 text-blue-700',       'bg-blue-400',    'Coding'],
+    TESTING:     ['bg-violet-100 text-violet-700',   'bg-violet-400',  'Testing'],
+    PR_CREATING: ['bg-cyan-100 text-cyan-700',       'bg-cyan-400',    'Creating PR'],
+    DEPLOYING:   ['bg-orange-100 text-orange-700',   'bg-orange-400',  'Deploying'],
+    DONE:        ['bg-emerald-100 text-emerald-700', 'bg-emerald-400', 'Done'],
+    FAILED:      ['bg-red-100 text-red-700',         'bg-red-400',     'Failed'],
+  };
+  const [cls, dot, label] = cfg[status] || cfg.PENDING;
+  return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cls}">
+    <span class="w-1.5 h-1.5 rounded-full ${dot} ${['CODING','TESTING','PR_CREATING','DEPLOYING'].includes(status) ? 'pulse-dot' : ''}"></span>
+    ${label}
+  </span>`;
+}
+
+function statCard(label, value, color, icon) {
+  const colors = {
+    indigo: 'text-indigo-600', emerald: 'text-emerald-600', violet: 'text-violet-600', red: 'text-red-500'
+  };
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+    <div class="flex items-center justify-between mb-2">${icon}
+      <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${label}</span>
+    </div>
+    <div class="text-3xl font-bold ${colors[color]}">${value}</div>
+  </div>`;
+}
+
+function emptyState() {
+  return `
+  <div class="py-16 text-center">
+    <svg class="w-12 h-12 text-slate-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+    </svg>
+    <p class="text-sm font-medium text-slate-500">No runs yet</p>
+    <p class="text-xs text-slate-400 mt-1">Submit a user story to generate your first ETL pipeline</p>
+    <button onclick="navigate('new')"
+      class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-xl transition-colors shadow-sm">
+      Get Started
+    </button>
+  </div>`;
+}
+
+function spinner(msg = '') {
+  return `<div class="flex items-center justify-center py-20 gap-3 text-slate-400">
+    <svg class="w-5 h-5 spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+    <span class="text-sm">${msg}</span>
+  </div>`;
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+function iconChart(cls='w-5 h-5 text-slate-400') {
+  return `<svg class="${cls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`;
+}
+function iconCheck(cls='w-5 h-5 text-emerald-400') {
+  return `<svg class="${cls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+}
+function iconBolt(cls='w-5 h-5 text-violet-400') {
+  return `<svg class="${cls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`;
+}
+function iconAlert(cls='w-5 h-5 text-red-400') {
+  return `<svg class="${cls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+}
+function iconGitHub(cls='w-4 h-4') {
+  return `<svg class="${cls}" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>`;
+}
+
+// ─── Global input style ───────────────────────────────────────────────────────
+const style = document.createElement('style');
+style.textContent = `.inp {
+  border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px;
+  font-size: 0.875rem; color: #1e293b; background: #fff; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.inp:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+.inp::placeholder { color: #94a3b8; }`;
+document.head.appendChild(style);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+// Restore API key in sidebar input
+if (S.apiKey) el('sidebar-api-key').value = S.apiKey;
+
+healthCheck();
+setInterval(healthCheck, 30000);
+navigate('dashboard');
+</script>
+</html>

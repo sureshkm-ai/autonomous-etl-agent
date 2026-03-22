@@ -1,6 +1,7 @@
 """AWS S3 tool — handles .whl packaging and S3 upload/download."""
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -53,7 +54,7 @@ class AWSTools:
                 )
 
                 result = subprocess.run(
-                    ["python", "setup.py", "bdist_wheel", "--dist-dir", "/tmp/etl_artifacts"],
+                    [sys.executable, "setup.py", "bdist_wheel", "--dist-dir", "/tmp/etl_artifacts"],
                     capture_output=True, text=True, cwd=tmpdir,
                 )
                 if result.returncode != 0:

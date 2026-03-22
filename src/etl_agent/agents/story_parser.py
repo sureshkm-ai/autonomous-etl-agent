@@ -1,11 +1,13 @@
 """
 Story Parser Agent — parses a UserStory YAML into a structured ETLSpec.
-Uses Claude to extract transformation intent via prompt engineering.
+Uses the ReactAgent loop: if the LLM returns malformed JSON it is shown the
+parse error and asked to return corrected JSON (up to 3 attempts).
 """
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from etl_agent.agents.base import ReactAgent
 from etl_agent.core.config import get_settings
 from etl_agent.core.exceptions import StoryParseError
 from etl_agent.core.logging import get_logger
@@ -40,61 +42,74 @@ class _LLMWrapper:
         return _Resp()
 
 
-class StoryParserAgent:
+class StoryParserAgent(ReactAgent):
     """Agent 1: Converts a UserStory into a structured ETLSpec using Claude."""
 
-    # Class-level default — allows integration tests to patch via
-    # patch("etl_agent.agents.story_parser.StoryParserAgent._llm").
-    # Unit tests can still use patch.object(instance, "_llm").
     _llm: Any = None
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        # Do NOT set self._llm here; lazy-init in _call_llm so the class-level
-        # patch applied by integration tests remains visible on new instances.
 
     async def __call__(self, state: GraphState) -> dict[str, Any]:
-        """Make the agent callable as ``await agent(state)``."""
         try:
             return await self.run(state)
         except Exception as e:
             logger.error("story_parser_call_failed", error=str(e))
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=30),
-        reraise=True,
-    )
-    async def _call_llm(self, prompt: str) -> str:
-        """Call Claude with retry logic for rate limits and transient errors."""
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
+    async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
-        response = await self._llm.ainvoke([{"role": "user", "content": prompt}])
+        response = await self._llm.ainvoke(messages)
         return response.content
 
+    @staticmethod
+    def _validate_json(raw: str) -> tuple[bool, str]:
+        """Check that the response contains a valid JSON ETLSpec block."""
+        import json, re
+        json_match = re.search(r"```json\n(.*?)\n```", raw, re.DOTALL)
+        candidate = json_match.group(1) if json_match else raw
+        try:
+            data = json.loads(candidate)
+            ETLSpec(**data)   # validate pydantic model
+            return True, ""
+        except Exception as exc:
+            return False, str(exc)
+
+    @staticmethod
+    def _fix_message(raw: str, error: str, attempt: int) -> str:
+        return (
+            f"Your previous response could not be parsed as a valid ETLSpec JSON.\n\n"
+            f"Error: {error}\n\n"
+            "Please return **only** a corrected JSON object inside a single "
+            "```json ... ``` block. Make sure every field matches the ETLSpec schema."
+        )
+
     async def run(self, state: GraphState) -> dict[str, Any]:
-        """Parse the user story and return an ETLSpec."""
         story = state["user_story"]
         logger.info("story_parser_started", story_id=story.id)
 
         try:
             prompt = build_story_parser_prompt(story)
-            raw_response = await self._call_llm(prompt)
+            raw_response = await self.react_llm_loop(
+                initial_messages=[{"role": "user", "content": prompt}],
+                call_llm=self._call_llm,
+                validate=self._validate_json,
+                build_fix_message=self._fix_message,
+                agent_name="story_parser",
+            )
 
-            # Parse the structured JSON response from Claude
-            import json
-            import re
+            import json, re
             json_match = re.search(r"```json\n(.*?)\n```", raw_response, re.DOTALL)
-            if json_match:
-                spec_data = json.loads(json_match.group(1))
-            else:
-                spec_data = json.loads(raw_response)
-
+            spec_data = json.loads(json_match.group(1) if json_match else raw_response)
             etl_spec = ETLSpec(**spec_data)
-            logger.info("story_parser_completed", pipeline_name=etl_spec.pipeline_name,
-                        operations=[op.value for op in etl_spec.operations])
 
+            logger.info(
+                "story_parser_completed",
+                pipeline_name=etl_spec.pipeline_name,
+                operations=[op.value for op in etl_spec.operations],
+            )
             return {"etl_spec": etl_spec, "status": RunStatus.CODING}
 
         except Exception as e:

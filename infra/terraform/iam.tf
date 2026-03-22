@@ -34,6 +34,32 @@ resource "aws_iam_role_policy" "s3_access" {
   })
 }
 
+resource "aws_iam_role_policy" "ecr_access" {
+  name = "${var.project_name}-ecr-policy"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # GetAuthorizationToken must target * (no resource-level restriction in ECR)
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/etl-agent-app"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.project_name}-ec2-profile-${var.environment}"
   role = aws_iam_role.ec2_role.name
