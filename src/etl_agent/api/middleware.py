@@ -10,12 +10,17 @@ logger = get_logger(__name__)
 
 EXCLUDED_PATHS = {"/api/v1/health", "/docs", "/redoc", "/openapi.json"}
 
+# Path prefixes that are served without API key authentication.
+# The UI itself is public; it sends the API key on individual API calls.
+EXCLUDED_PREFIXES = ("/ui", "/", "/docs", "/redoc")
+
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
     """Validates X-API-Key header on all non-excluded routes."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[no-untyped-def]
-        if request.url.path in EXCLUDED_PATHS:
+        path = request.url.path
+        if path in EXCLUDED_PATHS or any(path.startswith(p) for p in EXCLUDED_PREFIXES):
             return await call_next(request)
 
         settings = get_settings()

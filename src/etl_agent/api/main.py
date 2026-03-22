@@ -1,11 +1,12 @@
 """FastAPI application factory with lifespan management."""
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from etl_agent.core.config import get_settings
 from etl_agent.core.logging import configure_logging, get_logger
@@ -54,6 +55,16 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
     app.include_router(stories.router, prefix="/api/v1", tags=["stories"])
     app.include_router(runs.router, prefix="/api/v1", tags=["runs"])
+
+    # Serve the single-page UI from src/etl_agent/static/
+    static_dir = Path(__file__).parent.parent / "static"
+    if static_dir.exists():
+        app.mount("/ui", StaticFiles(directory=str(static_dir), html=True), name="ui")
+
+    # Redirect root to UI
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/ui")
 
     return app
 

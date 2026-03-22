@@ -6,6 +6,7 @@ Inherits ReactAgent:
 """
 import subprocess
 import tempfile
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +131,32 @@ class TestAgent(ReactAgent):
             failed_test_names=failed_names,
         )
 
+    # conftest.py injected into every test run so pyspark.sql.functions work
+    _CONFTEST = textwrap.dedent("""\
+        import pytest
+        from pyspark.sql import SparkSession
+
+        @pytest.fixture(scope="session", autouse=True)
+        def spark_session():
+            \"\"\"Start a minimal local SparkSession once for the whole test session.
+
+            This ensures pyspark.sql.functions (F.col, F.sum, etc.) have an active
+            SparkContext and do not raise AssertionError mid-test.
+            \"\"\"
+            spark = (
+                SparkSession.builder
+                .master("local[1]")
+                .appName("etl_agent_unit_tests")
+                .config("spark.sql.shuffle.partitions", "1")
+                .config("spark.default.parallelism", "1")
+                .config("spark.ui.enabled", "false")
+                .config("spark.driver.bindAddress", "127.0.0.1")
+                .getOrCreate()
+            )
+            yield spark
+            spark.stop()
+    """)
+
     def _run_tests(self, pipeline_code: str, test_code: str, pipeline_name: str = "pipeline") -> TestResult:
         import os
         import sys
@@ -141,6 +168,7 @@ class TestAgent(ReactAgent):
             if safe_name != "pipeline":
                 (tmp / f"{safe_name}.py").write_text(pipeline_code)
             (tmp / "test_pipeline.py").write_text(test_code)
+            (tmp / "conftest.py").write_text(self._CONFTEST)
             (tmp / "__init__.py").touch()
             (tmp / "pytest.ini").write_text("[pytest]\n")
 
@@ -193,13 +221,54 @@ class TestAgent(ReactAgent):
         logger.info("test_agent_started", pipeline=state["etl_spec"].pipeline_name)
         try:
             # React LLM loop: fix syntax errors in generated test code
+            base_prompt = build_test_generator_prompt(
+                etl_spec=state["etl_spec"],
+                generated_code=state["generated_code"],
+            )
+            pyspark_rules = textwrap.dedent("""
+
+                ── CRITICAL PYSPARK TESTING RULES (follow exactly) ──────────────────────────
+
+                A conftest.py is automatically injected that starts a real SparkSession
+                (scope="session") before any test runs. This means pyspark.sql.functions
+                (F.col, F.sum, F.count, etc.) will work inside the pipeline methods being
+                tested — you do NOT need to patch them.
+
+                Rules you MUST follow in every test you write:
+
+                1. Configure integer return values on any mock that represents a count/numeric:
+                      mock_df.count.return_value = 100
+                   Never leave count() or similar returning a raw MagicMock — f-string formatting
+                   with `:,` or `:d` will raise TypeError on a MagicMock.
+
+                2. Chain mock DataFrame calls so filter/select/groupBy return the mock itself:
+                      mock_df.filter.return_value = mock_df
+                      mock_df.select.return_value = mock_df
+                      mock_df.groupBy.return_value = mock_df
+                      mock_df.agg.return_value = mock_df
+                      mock_df.withColumn.return_value = mock_df
+
+                3. Do NOT call pyspark.sql.functions directly in test assertions —
+                   F.col() etc. return Column objects that cannot be compared with ==.
+                   Only assert on Python primitives (counts, booleans, strings).
+
+                4. Prefer testing the top-level `run(mock_spark)` method over individual
+                   transform methods, since run() exercises the full pipeline with one
+                   well-configured mock.
+
+                5. Mock SparkSession read chain fully:
+                      mock_spark.read.parquet.return_value = mock_df
+                      mock_spark.read.csv.return_value = mock_df
+                      mock_spark.read.format.return_value.load.return_value = mock_df
+
+                ─────────────────────────────────────────────────────────────────────────────
+            """)
+            full_prompt = base_prompt + pyspark_rules
+
             raw_response = await self.react_llm_loop(
                 initial_messages=[{
                     "role": "user",
-                    "content": build_test_generator_prompt(
-                        etl_spec=state["etl_spec"],
-                        generated_code=state["generated_code"],
-                    ),
+                    "content": full_prompt,
                 }],
                 call_llm=self._call_llm,
                 validate=self._validate_test_syntax,
