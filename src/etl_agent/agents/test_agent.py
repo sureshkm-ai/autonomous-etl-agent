@@ -57,7 +57,7 @@ class TestAgent(ReactAgent):
         try:
             return await self.run(state)
         except Exception as e:
-            logger.error("test_agent_call_failed", error=str(e))
+            logger.error("test_agent_call_failed", error=str(e), run_id=state.get("run_id",""), story_id=state.get("story_id",""))
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
@@ -218,7 +218,10 @@ class TestAgent(ReactAgent):
             return self._parse_pytest_output(output, result.returncode)
 
     async def run(self, state: GraphState) -> dict[str, Any]:
-        logger.info("test_agent_started", pipeline=state["etl_spec"].pipeline_name)
+        run_id = state.get("run_id", "")
+        story_id = state.get("story_id", "")
+        logger.info("test_agent_started", pipeline=state["etl_spec"].pipeline_name,
+                    run_id=run_id, story_id=story_id)
         try:
             # React LLM loop: fix syntax errors in generated test code
             base_prompt = build_test_generator_prompt(
@@ -295,6 +298,8 @@ class TestAgent(ReactAgent):
                 passed=test_results.passed,
                 total=test_results.total_tests,
                 coverage=test_results.coverage_pct,
+                run_id=run_id,
+                story_id=story_id,
             )
             return {
                 "generated_tests": generated_tests,
@@ -303,7 +308,7 @@ class TestAgent(ReactAgent):
                 "retry_count": state["retry_count"] + (1 if not test_results.passed else 0),
             }
         except Exception as e:
-            logger.error("test_agent_failed", error=str(e))
+            logger.error("test_agent_failed", error=str(e), run_id=run_id, story_id=story_id)
             raise TestGenerationError(f"Test execution failed: {e}") from e
 
     async def _run_tests_async(self, pipeline_code: str, test_code: str, pipeline_name: str) -> TestResult:
@@ -313,3 +318,4 @@ class TestAgent(ReactAgent):
         return await loop.run_in_executor(
             None, self._run_tests, pipeline_code, test_code, pipeline_name
         )
+
