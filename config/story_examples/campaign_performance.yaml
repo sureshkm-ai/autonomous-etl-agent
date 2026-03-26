@@ -1,0 +1,35 @@
+id: "story-006"
+title: "iPhone 17 campaign performance ETL"
+description: >
+  As a data engineer, I want to build a pipeline that measures the performance
+  of the Amazon iPhone 17 marketing campaign by joining campaign data with
+  orders and computing conversion rates, revenue per impression, and ROI.
+acceptance_criteria:
+  - "Join campaign_id from campaigns table with order campaign_id"
+  - "Compute conversion_rate = orders / impressions per campaign"
+  - "Compute revenue_per_impression = total_revenue / impressions"
+  - "Compute roi = (total_revenue - campaign_cost) / campaign_cost * 100"
+  - "Filter to only iPhone 17 product campaigns"
+source:
+  path: "s3://etl-agent-raw/amazon_campaigns.parquet"
+  format: "parquet"
+target:
+  path: "s3://etl-agent-processed/campaign_performance"
+  format: "delta"
+  mode: "merge"
+transformations:
+  - operation: "filter"
+    column: "product_category"
+    condition: "== 'iPhone 17'"
+  - operation: "join"
+    join_table: "s3://etl-agent-raw/amazon_orders.parquet"
+    join_key: "campaign_id"
+    join_type: "left"
+  - operation: "aggregate"
+    group_by: ["campaign_id", "campaign_name", "product_category"]
+    metrics: ["total_revenue", "order_count", "impressions", "campaign_cost"]
+  - operation: "enrich"
+    column: "roi_pct"
+    value: "(total_revenue - campaign_cost) / campaign_cost * 100"
+output_format: "notebook"
+tags: ["campaign", "iphone-17", "roi", "analytics", "amazon"]

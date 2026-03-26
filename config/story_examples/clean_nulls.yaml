@@ -1,0 +1,29 @@
+id: "story-001"
+title: "Clean null values in customer data"
+description: >
+  As a data engineer, I want to remove or fill null values in the customer
+  table so that downstream analytics are not affected by missing data.
+acceptance_criteria:
+  - "Rows where customer_id is null must be removed"
+  - "Null email values must be replaced with 'unknown@example.com'"
+  - "Null country values must be replaced with 'UNKNOWN'"
+  - "Output row count must be less than or equal to input row count"
+source:
+  path: "s3://etl-agent-raw/amazon_customers.parquet"
+  format: "parquet"
+target:
+  path: "s3://etl-agent-processed/customers_clean"
+  format: "delta"
+  mode: "overwrite"
+transformations:
+  - operation: "filter"
+    column: "customer_id"
+    condition: "is_not_null"
+  - operation: "fill_null"
+    column: "email"
+    value: "unknown@example.com"
+  - operation: "fill_null"
+    column: "country"
+    value: "UNKNOWN"
+output_format: "script"
+tags: ["data-quality", "customers"]

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run History — Autonomous ETL Agent</title>
+  <link rel="stylesheet" href="/static/app.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-mono">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">⚡</span>
+      <div>
+        <h1 class="text-lg font-bold text-white">Autonomous ETL Agent</h1>
+        <p class="text-xs text-gray-500">Claude Sonnet · LangGraph · PySpark · Delta Lake</p>
+      </div>
+    </div>
+    <nav class="flex gap-4 text-sm">
+      <a href="/" class="text-gray-400 hover:text-white transition-colors">New Run</a>
+      <a href="/runs" class="text-indigo-400 border-b border-indigo-400 pb-0.5">Run History</a>
+      <a href="/docs" target="_blank" class="text-gray-400 hover:text-white transition-colors">API Docs</a>
+    </nav>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-10">
+
+    <!-- Page Title + Controls -->
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-white">Run History</h2>
+      <div class="flex gap-3 items-center">
+        <!-- Status filter -->
+        <select id="statusFilter" class="bg-gray-900 border border-gray-700 text-sm rounded px-3 py-1.5 text-gray-300 focus:outline-none focus:border-indigo-500">
+          <option value="">All statuses</option>
+          <option value="DONE">Done</option>
+          <option value="FAILED">Failed</option>
+          <option value="PENDING">Pending</option>
+          <option value="CODING">Coding</option>
+          <option value="TESTING">Testing</option>
+          <option value="PR_CREATING">PR Creating</option>
+          <option value="DEPLOYING">Deploying</option>
+        </select>
+        <button id="refreshBtn" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 border border-indigo-800 rounded hover:border-indigo-500">
+          ↻ Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 text-center">
+        <div id="statTotal" class="text-2xl font-bold text-white">—</div>
+        <div class="text-xs text-gray-500 mt-1">Total Runs</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 text-center">
+        <div id="statDone" class="text-2xl font-bold text-green-400">—</div>
+        <div class="text-xs text-gray-500 mt-1">Successful</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 text-center">
+        <div id="statFailed" class="text-2xl font-bold text-red-400">—</div>
+        <div class="text-xs text-gray-500 mt-1">Failed</div>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 text-center">
+        <div id="statRunning" class="text-2xl font-bold text-yellow-400">—</div>
+        <div class="text-xs text-gray-500 mt-1">In Progress</div>
+      </div>
+    </div>
+
+    <!-- Runs Table -->
+    <div class="border border-gray-800 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-900 border-b border-gray-800">
+          <tr>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold w-8">#</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold">Pipeline / Story</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold">Status</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold hidden sm:table-cell">Tests</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold hidden md:table-cell">Artifacts</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold hidden lg:table-cell">Started</th>
+            <th class="text-left px-4 py-3 text-gray-400 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="runsTableBody" class="divide-y divide-gray-800">
+          <!-- Injected by JS -->
+          <tr id="loadingRow">
+            <td colspan="7" class="text-center py-12 text-gray-600">Loading runs…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="flex justify-center gap-2 mt-6 hidden">
+      <button id="prevPage" class="px-3 py-1.5 text-sm border border-gray-700 rounded text-gray-400 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-30">
+        ← Prev
+      </button>
+      <span id="pageInfo" class="text-sm text-gray-500 self-center px-2"></span>
+      <button id="nextPage" class="px-3 py-1.5 text-sm border border-gray-700 rounded text-gray-400 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-30">
+        Next →
+      </button>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

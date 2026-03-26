@@ -1,0 +1,26 @@
+id: "story-002"
+title: "Join customers with orders and aggregate spend"
+description: >
+  As a data engineer, I want to join the customer table with the orders table
+  and compute total spend per customer for use in the analytics layer.
+acceptance_criteria:
+  - "Every customer in the output must exist in the customer table"
+  - "total_spend must equal the sum of all order amounts per customer"
+  - "Customers with no orders must still appear with total_spend = 0"
+source:
+  path: "s3://etl-agent-raw/amazon_customers.parquet"
+  format: "parquet"
+target:
+  path: "s3://etl-agent-processed/customer_spend"
+  format: "delta"
+  mode: "overwrite"
+transformations:
+  - operation: "join"
+    join_table: "s3://etl-agent-raw/amazon_orders.parquet"
+    join_key: "customer_id"
+    join_type: "left"
+  - operation: "aggregate"
+    group_by: ["customer_id", "customer_name", "email", "country"]
+    metrics: ["total_spend", "order_count"]
+output_format: "script"
+tags: ["join", "aggregation", "customers", "orders"]

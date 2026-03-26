@@ -1,0 +1,74 @@
+{
+  "family": "etl-agent-worker",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "cpu": "4096",
+  "memory": "8192",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/etl-agent-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/etl-agent-ecs-task",
+  "ephemeralStorage": {
+    "sizeInGiB": 30
+  },
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "PLACEHOLDER",
+      "essential": true,
+      "command": [
+        "python",
+        "-m",
+        "etl_agent.worker"
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "SQS_VISIBILITY_TIMEOUT",
+          "value": "900"
+        },
+        {
+          "name": "SQS_MAX_MESSAGES",
+          "value": "1"
+        },
+        {
+          "name": "JAVA_TOOL_OPTIONS",
+          "value": "-Xmx4g -XX:+UseG1GC --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:ANTHROPIC_API_KEY::"
+        },
+        {
+          "name": "API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:API_KEY::"
+        },
+        {
+          "name": "GITHUB_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:GITHUB_TOKEN::"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:DATABASE_URL::"
+        },
+        {
+          "name": "SQS_QUEUE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:SQS_QUEUE_URL::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/etl-agent/worker",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "worker"
+        }
+      }
+    }
+  ]
+}

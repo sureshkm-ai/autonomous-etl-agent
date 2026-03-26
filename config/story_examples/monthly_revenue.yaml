@@ -1,0 +1,22 @@
+id: "story-003"
+title: "Aggregate monthly revenue by region"
+description: >
+  As a data engineer, I want to aggregate total order revenue by month and
+  region to support the monthly business review dashboard.
+acceptance_criteria:
+  - "Revenue must be grouped by year, month, and region"
+  - "total_revenue must equal sum of order_amount for each group"
+  - "Output must be partitioned by year and month"
+source:
+  path: "s3://etl-agent-raw/amazon_orders.parquet"
+  format: "parquet"
+target:
+  path: "s3://etl-agent-processed/monthly_revenue"
+  format: "delta"
+  mode: "overwrite"
+transformations:
+  - operation: "aggregate"
+    group_by: ["year", "month", "region"]
+    metrics: ["total_revenue", "order_count", "avg_order_value"]
+output_format: "script"
+tags: ["revenue", "aggregation", "monthly", "regional"]
