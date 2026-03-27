@@ -8,7 +8,7 @@
 #                  S3 read/write, SQS send/receive, Secrets Manager read.
 # =============================================================================
 
-data "aws_caller_identity" "current" {}
+# aws_caller_identity is declared in main.tf — do not re-declare here.
 
 # ─── ECS Execution Role ───────────────────────────────────────────────────────
 

@@ -10,8 +10,8 @@ resource "aws_db_subnet_group" "postgres" {
 }
 
 resource "aws_db_parameter_group" "postgres" {
-  name   = "${var.project_name}-pg15"
-  family = "postgres15"
+  name   = "${var.project_name}-pg16"
+  family = "postgres16"
 
   parameter {
     name  = "log_connections"
@@ -34,8 +34,9 @@ resource "aws_db_parameter_group" "postgres" {
   }
 
   parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
+    apply_method = "pending-reboot"   # static parameter — takes effect after next reboot
   }
 
   tags = { Project = var.project_name }
@@ -44,7 +45,7 @@ resource "aws_db_parameter_group" "postgres" {
 resource "aws_db_instance" "postgres" {
   identifier     = "${var.project_name}-postgres"
   engine         = "postgres"
-  engine_version = "15.6"
+  engine_version = "16"
   instance_class = var.db_instance_class
 
   db_name  = var.db_name

@@ -8,7 +8,7 @@
 # The lifecycle rules complement the object tags written by aws_tools.py.
 
 resource "aws_s3_bucket_lifecycle_configuration" "etl_agent_lifecycle" {
-  bucket = aws_s3_bucket.etl_artifacts.id
+  bucket = aws_s3_bucket.artifacts.id
 
   # -------------------------------------------------------------------------
   # Rule 1: Public — lightweight tiering, annual expiry
@@ -92,10 +92,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "etl_agent_lifecycle" {
     noncurrent_version_expiration {
       noncurrent_days = 14
     }
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
   }
 
   # -------------------------------------------------------------------------
@@ -124,9 +120,22 @@ resource "aws_s3_bucket_lifecycle_configuration" "etl_agent_lifecycle" {
     noncurrent_version_expiration {
       noncurrent_days = 7
     }
+  }
+
+  # -------------------------------------------------------------------------
+  # Rule 5: Abort incomplete multipart uploads (cannot be combined with tag
+  # filters — AWS restriction). Applies to all objects in the bucket.
+  # -------------------------------------------------------------------------
+  rule {
+    id     = "abort-incomplete-multipart"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     abort_incomplete_multipart_upload {
-      days_after_initiation = 3
+      days_after_initiation = 7
     }
   }
 }
@@ -135,7 +144,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "etl_agent_lifecycle" {
 # S3 bucket versioning — required for noncurrent_version_expiration rules
 # -------------------------------------------------------------------------
 resource "aws_s3_bucket_versioning" "etl_artifacts" {
-  bucket = aws_s3_bucket.etl_artifacts.id
+  bucket = aws_s3_bucket.artifacts.id
 
   versioning_configuration {
     status = "Enabled"
@@ -146,7 +155,7 @@ resource "aws_s3_bucket_versioning" "etl_artifacts" {
 # S3 default server-side encryption
 # -------------------------------------------------------------------------
 resource "aws_s3_bucket_server_side_encryption_configuration" "etl_artifacts" {
-  bucket = aws_s3_bucket.etl_artifacts.id
+  bucket = aws_s3_bucket.artifacts.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -160,7 +169,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "etl_artifacts" {
 # Block all public access
 # -------------------------------------------------------------------------
 resource "aws_s3_bucket_public_access_block" "etl_artifacts" {
-  bucket = aws_s3_bucket.etl_artifacts.id
+  bucket = aws_s3_bucket.artifacts.id
 
   block_public_acls       = true
   block_public_policy     = true

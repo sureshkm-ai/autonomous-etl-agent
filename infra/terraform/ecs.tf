@@ -7,17 +7,11 @@
 # Both services run from the same Docker image; CMD is overridden per task.
 # =============================================================================
 
-data "aws_ecr_repository" "app" {
-  name = "${var.project_name}-app"
-}
-
-data "aws_ecr_image" "app_latest" {
-  repository_name = data.aws_ecr_repository.app.name
-  most_recent     = true
-}
-
 locals {
-  image_uri = "${data.aws_ecr_repository.app.repository_url}@${data.aws_ecr_image.app_latest.image_digest}"
+  # Use var.image_tag when supplied (e.g. from CD pipeline: -var image_tag=$GIT_SHA).
+  # Fall back to "latest" for manual / first-run applies.
+  _image_tag = var.image_tag != "" ? var.image_tag : "latest"
+  image_uri  = "${aws_ecr_repository.etl_agent.repository_url}:${local._image_tag}"
 }
 
 # ─── CloudWatch Log Groups ────────────────────────────────────────────────────
@@ -201,10 +195,13 @@ resource "aws_lb" "api" {
   enable_deletion_protection = false
   enable_http2               = true
 
+  # ALB access logs require a dedicated S3 bucket policy granting the
+  # regional ELB service account PutObject rights.  Disabled until that
+  # policy is added to the bucket; re-enable by setting enabled = true.
   access_logs {
     bucket  = var.s3_bucket
     prefix  = "alb-logs"
-    enabled = true
+    enabled = false
   }
 
   tags = { Project = var.project_name }
@@ -232,12 +229,28 @@ resource "aws_lb_target_group" "api" {
   tags = { Project = var.project_name }
 }
 
-resource "aws_lb_listener" "http" {
+# HTTP listener — forwards directly when no TLS cert is configured yet.
+resource "aws_lb_listener" "http_forward" {
+  count = var.acm_certificate_arn == "" ? 1 : 0
+
   load_balancer_arn = aws_lb.api.arn
   port              = 80
   protocol          = "HTTP"
 
-  # Redirect all HTTP → HTTPS (enable once cert is attached)
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
+
+# HTTP listener — redirects to HTTPS once a cert is attached.
+resource "aws_lb_listener" "http_redirect" {
+  count = var.acm_certificate_arn != "" ? 1 : 0
+
+  load_balancer_arn = aws_lb.api.arn
+  port              = 80
+  protocol          = "HTTP"
+
   default_action {
     type = "redirect"
     redirect {
@@ -248,7 +261,10 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# HTTPS listener — only created when an ACM certificate ARN is provided.
 resource "aws_lb_listener" "https" {
+  count = var.acm_certificate_arn != "" ? 1 : 0
+
   load_balancer_arn = aws_lb.api.arn
   port              = 443
   protocol          = "HTTPS"
@@ -293,7 +309,7 @@ resource "aws_ecs_service" "api" {
     rollback = true
   }
 
-  depends_on = [aws_lb_listener.https]
+  depends_on = [aws_lb_listener.http_forward, aws_lb_listener.http_redirect]
 
   lifecycle {
     ignore_changes = [task_definition, desired_count]

@@ -67,3 +67,8 @@ output "public_subnet_ids" {
   description = "Public subnet IDs (ALB)"
   value       = aws_subnet.public[*].id
 }
+
+output "ecs_tasks_security_group_id" {
+  description = "Security group ID for ECS tasks — used in GitHub Actions CD for migrate step"
+  value       = aws_security_group.ecs_tasks.id
+}

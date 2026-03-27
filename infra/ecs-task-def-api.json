@@ -6,8 +6,8 @@
   "networkMode": "awsvpc",
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/etl-agent-ecs-execution",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/etl-agent-ecs-task",
+  "executionRoleArn": "arn:aws:iam::453711491609:role/etl-agent-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::453711491609:role/etl-agent-ecs-task",
   "containerDefinitions": [
     {
       "name": "api",
@@ -42,23 +42,23 @@
       "secrets": [
         {
           "name": "ANTHROPIC_API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:ANTHROPIC_API_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:ANTHROPIC_API_KEY::"
         },
         {
           "name": "API_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:API_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:API_KEY::"
         },
         {
           "name": "GITHUB_TOKEN",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:GITHUB_TOKEN::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:GITHUB_TOKEN::"
         },
         {
           "name": "DATABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:DATABASE_URL::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:DATABASE_URL::"
         },
         {
           "name": "SQS_QUEUE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:etl-agent/app:SQS_QUEUE_URL::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:SQS_QUEUE_URL::"
         }
       ],
       "logConfiguration": {
