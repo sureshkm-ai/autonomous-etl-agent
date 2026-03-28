@@ -1,13 +1,13 @@
 """Unit tests for business analytics pipelines (RFM, Geo, Campaign, Intent)."""
+
 from __future__ import annotations
 
 from datetime import date, timedelta
-from unittest.mock import patch
 
 import pytest
 
-
 # ─── PySpark fixtures are session-scoped to avoid repeated JVM init ───────────
+
 
 def _configure_java_home() -> None:
     """Point JAVA_HOME at Java 17 if available.
@@ -37,22 +37,27 @@ def _configure_java_home() -> None:
         if Path(path).exists():
             os.environ["JAVA_HOME"] = path
             # PySpark 3.5 on Java 17 needs these module opens
-            os.environ.setdefault("JAVA_TOOL_OPTIONS", " ".join([
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
-                "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-                "--add-opens=java.base/java.io=ALL-UNNAMED",
-                "--add-opens=java.base/java.net=ALL-UNNAMED",
-                "--add-opens=java.base/java.nio=ALL-UNNAMED",
-                "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
-                "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
-                "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-                "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
-                "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
-                "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
-                "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED",
-            ]))
+            os.environ.setdefault(
+                "JAVA_TOOL_OPTIONS",
+                " ".join(
+                    [
+                        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+                        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                        "--add-opens=java.base/java.io=ALL-UNNAMED",
+                        "--add-opens=java.base/java.net=ALL-UNNAMED",
+                        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+                        "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED",
+                    ]
+                ),
+            )
             break
 
 
@@ -61,8 +66,8 @@ def spark():
     """Create a test SparkSession with Delta Lake support."""
     _configure_java_home()
     try:
-        from pyspark.sql import SparkSession
         from delta import configure_spark_with_delta_pip
+        from pyspark.sql import SparkSession
 
         builder = (
             SparkSession.builder.master("local[1]")
@@ -87,20 +92,29 @@ def spark():
 @pytest.fixture
 def orders_df(spark):
     """Sample Amazon orders DataFrame."""
-    from pyspark.sql.types import StructType, StructField, StringType, DateType, DoubleType, IntegerType
+    from pyspark.sql.types import (
+        DateType,
+        DoubleType,
+        IntegerType,
+        StringType,
+        StructField,
+        StructType,
+    )
 
-    schema = StructType([
-        StructField("order_id", StringType(), False),
-        StructField("customer_id", StringType(), False),
-        StructField("order_date", DateType(), False),
-        StructField("total_amount", DoubleType(), True),
-        StructField("quantity", IntegerType(), True),
-    ])
+    schema = StructType(
+        [
+            StructField("order_id", StringType(), False),
+            StructField("customer_id", StringType(), False),
+            StructField("order_date", DateType(), False),
+            StructField("total_amount", DoubleType(), True),
+            StructField("quantity", IntegerType(), True),
+        ]
+    )
 
     today = date.today()
     data = [
-        ("ORD-001", "CUST-A", today - timedelta(days=5),  120.0, 2),
-        ("ORD-002", "CUST-A", today - timedelta(days=10), 80.0,  1),
+        ("ORD-001", "CUST-A", today - timedelta(days=5), 120.0, 2),
+        ("ORD-002", "CUST-A", today - timedelta(days=10), 80.0, 1),
         ("ORD-003", "CUST-B", today - timedelta(days=90), 200.0, 3),
         ("ORD-004", "CUST-C", today - timedelta(days=200), 50.0, 1),
         ("ORD-005", "CUST-D", today - timedelta(days=365), 500.0, 5),
@@ -111,20 +125,22 @@ def orders_df(spark):
 @pytest.fixture
 def customers_df(spark):
     """Sample customer profile DataFrame."""
-    from pyspark.sql.types import StructType, StructField, StringType
+    from pyspark.sql.types import StringType, StructField, StructType
 
-    schema = StructType([
-        StructField("customer_id", StringType(), False),
-        StructField("country", StringType(), True),
-        StructField("region", StringType(), True),
-        StructField("email", StringType(), True),
-    ])
+    schema = StructType(
+        [
+            StructField("customer_id", StringType(), False),
+            StructField("country", StringType(), True),
+            StructField("region", StringType(), True),
+            StructField("email", StringType(), True),
+        ]
+    )
 
     data = [
-        ("CUST-A", "US",  "North", "a@example.com"),
-        ("CUST-B", "UK",  "South", "b@example.com"),
-        ("CUST-C", "US",  "West",  None),
-        ("CUST-D", "CA",  "East",  "d@example.com"),
+        ("CUST-A", "US", "North", "a@example.com"),
+        ("CUST-B", "UK", "South", "b@example.com"),
+        ("CUST-C", "US", "West", None),
+        ("CUST-D", "CA", "East", "d@example.com"),
     ]
     return spark.createDataFrame(data, schema=schema)
 
@@ -132,30 +148,34 @@ def customers_df(spark):
 @pytest.fixture
 def campaigns_df(spark):
     """Sample iPhone 17 campaign DataFrame."""
-    from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType
+    from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
-    schema = StructType([
-        StructField("campaign_id", StringType(), False),
-        StructField("campaign_name", StringType(), True),
-        StructField("product_family", StringType(), True),
-        StructField("impressions", LongType(), True),
-        StructField("clicks", LongType(), True),
-        StructField("conversions", LongType(), True),
-        StructField("revenue", DoubleType(), True),
-        StructField("spend", DoubleType(), True),
-    ])
+    schema = StructType(
+        [
+            StructField("campaign_id", StringType(), False),
+            StructField("campaign_name", StringType(), True),
+            StructField("product_family", StringType(), True),
+            StructField("impressions", LongType(), True),
+            StructField("clicks", LongType(), True),
+            StructField("conversions", LongType(), True),
+            StructField("revenue", DoubleType(), True),
+            StructField("spend", DoubleType(), True),
+        ]
+    )
 
     data = [
-        ("CAM-001", "iPhone 17 Launch",     "iPhone 17 Pro",    100000, 5000, 250, 250000.0, 10000.0),
-        ("CAM-002", "iPhone 17 Mid Season", "iPhone 17",         50000, 2000,  80,  64000.0,  5000.0),
-        ("CAM-003", "Generic Tech",          "Samsung Galaxy",   30000,  800,  10,   5000.0,  3000.0),
+        ("CAM-001", "iPhone 17 Launch", "iPhone 17 Pro", 100000, 5000, 250, 250000.0, 10000.0),
+        ("CAM-002", "iPhone 17 Mid Season", "iPhone 17", 50000, 2000, 80, 64000.0, 5000.0),
+        ("CAM-003", "Generic Tech", "Samsung Galaxy", 30000, 800, 10, 5000.0, 3000.0),
     ]
     return spark.createDataFrame(data, schema=schema)
 
 
 # ─── Tests: RFM Analysis ─────────────────────────────────────────────────────
 
+
 class TestRFMAnalysis:
+    @pytest.mark.unit
     def test_rfm_output_has_all_customers(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis
 
@@ -165,6 +185,7 @@ class TestRFMAnalysis:
         result = spark.read.format("delta").load(output_path)
         assert result.count() == orders_df.select("customer_id").distinct().count()
 
+    @pytest.mark.unit
     def test_rfm_output_has_segment_column(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis
 
@@ -174,9 +195,11 @@ class TestRFMAnalysis:
         result = spark.read.format("delta").load(output_path)
         assert "rfm_segment" in result.columns
 
+    @pytest.mark.unit
     def test_rfm_no_null_segments(self, spark, orders_df, tmp_path) -> None:
-        from etl_agent.analytics.rfm_analysis import run_rfm_analysis
         from pyspark.sql import functions as F
+
+        from etl_agent.analytics.rfm_analysis import run_rfm_analysis
 
         output_path = str(tmp_path / "rfm_null_check")
         run_rfm_analysis(spark, orders_df, output_path=output_path)
@@ -185,8 +208,9 @@ class TestRFMAnalysis:
         null_count = result.filter(F.col("rfm_segment").isNull()).count()
         assert null_count == 0
 
+    @pytest.mark.unit
     def test_rfm_valid_segment_values(self, spark, orders_df, tmp_path) -> None:
-        from etl_agent.analytics.rfm_analysis import run_rfm_analysis, VALID_SEGMENTS
+        from etl_agent.analytics.rfm_analysis import VALID_SEGMENTS, run_rfm_analysis
 
         output_path = str(tmp_path / "rfm_valid_segs")
         run_rfm_analysis(spark, orders_df, output_path=output_path)
@@ -198,7 +222,9 @@ class TestRFMAnalysis:
 
 # ─── Tests: Geo Analytics ─────────────────────────────────────────────────────
 
+
 class TestGeoAnalytics:
+    @pytest.mark.unit
     def test_geo_output_row_count(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.geo_analytics import run_geo_analysis
 
@@ -208,7 +234,10 @@ class TestGeoAnalytics:
         result = spark.read.format("delta").load(output_path)
         assert result.count() > 0
 
-    def test_geo_output_has_required_columns(self, spark, orders_df, customers_df, tmp_path) -> None:
+    @pytest.mark.unit
+    def test_geo_output_has_required_columns(
+        self, spark, orders_df, customers_df, tmp_path
+    ) -> None:
         from etl_agent.analytics.geo_analytics import run_geo_analysis
 
         output_path = str(tmp_path / "geo_cols")
@@ -218,9 +247,11 @@ class TestGeoAnalytics:
         required_cols = {"country", "total_revenue", "unique_customers"}
         assert required_cols.issubset(set(result.columns))
 
+    @pytest.mark.unit
     def test_geo_total_revenue_non_negative(self, spark, orders_df, customers_df, tmp_path) -> None:
-        from etl_agent.analytics.geo_analytics import run_geo_analysis
         from pyspark.sql import functions as F
+
+        from etl_agent.analytics.geo_analytics import run_geo_analysis
 
         output_path = str(tmp_path / "geo_rev")
         run_geo_analysis(spark, orders_df, customers_df, output_path=output_path)
@@ -232,7 +263,9 @@ class TestGeoAnalytics:
 
 # ─── Tests: Campaign Optimizer ────────────────────────────────────────────────
 
+
 class TestCampaignOptimizer:
+    @pytest.mark.unit
     def test_campaign_filters_iphone17(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -244,6 +277,7 @@ class TestCampaignOptimizer:
         for row in result.collect():
             assert "iPhone 17" in row.product_family
 
+    @pytest.mark.unit
     def test_campaign_has_kpi_columns(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -254,6 +288,7 @@ class TestCampaignOptimizer:
         required_kpis = {"conversion_rate", "revenue_per_impression", "roi_pct", "campaign_grade"}
         assert required_kpis.issubset(set(result.columns))
 
+    @pytest.mark.unit
     def test_campaign_grades_are_valid(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -268,8 +303,12 @@ class TestCampaignOptimizer:
 
 # ─── Tests: Customer Intent ───────────────────────────────────────────────────
 
+
 class TestCustomerIntent:
-    def test_intent_output_has_all_customers(self, spark, orders_df, customers_df, tmp_path) -> None:
+    @pytest.mark.unit
+    def test_intent_output_has_all_customers(
+        self, spark, orders_df, customers_df, tmp_path
+    ) -> None:
         from etl_agent.analytics.customer_intent import run_intent_scoring
 
         output_path = str(tmp_path / "intent_output")
@@ -278,9 +317,13 @@ class TestCustomerIntent:
         result = spark.read.format("delta").load(output_path)
         assert result.count() > 0
 
-    def test_intent_score_is_between_0_and_100(self, spark, orders_df, customers_df, tmp_path) -> None:
-        from etl_agent.analytics.customer_intent import run_intent_scoring
+    @pytest.mark.unit
+    def test_intent_score_is_between_0_and_100(
+        self, spark, orders_df, customers_df, tmp_path
+    ) -> None:
         from pyspark.sql import functions as F
+
+        from etl_agent.analytics.customer_intent import run_intent_scoring
 
         output_path = str(tmp_path / "intent_score_range")
         run_intent_scoring(spark, orders_df, customers_df, output_path=output_path)
@@ -291,8 +334,9 @@ class TestCustomerIntent:
         ).count()
         assert out_of_range == 0
 
+    @pytest.mark.unit
     def test_intent_segments_are_valid(self, spark, orders_df, customers_df, tmp_path) -> None:
-        from etl_agent.analytics.customer_intent import run_intent_scoring, VALID_INTENT_SEGMENTS
+        from etl_agent.analytics.customer_intent import VALID_INTENT_SEGMENTS, run_intent_scoring
 
         output_path = str(tmp_path / "intent_segs")
         run_intent_scoring(spark, orders_df, customers_df, output_path=output_path)

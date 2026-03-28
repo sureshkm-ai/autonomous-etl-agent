@@ -1,4 +1,5 @@
 """Geographic revenue analysis for campaign targeting."""
+
 from __future__ import annotations
 
 from etl_agent.core.logging import get_logger
@@ -20,7 +21,7 @@ def run_geo_analysis(
       1. run_geo_analysis(orders_path, customers_path, output_path)   — path-based
       2. run_geo_analysis(spark, orders_df, customers_df, output_path=…) — DataFrame-based
     """
-    from pyspark.sql import SparkSession, DataFrame
+    from pyspark.sql import DataFrame, SparkSession
     from pyspark.sql import functions as F
 
     # ── Resolve calling convention ────────────────────────────────────────────
@@ -31,6 +32,7 @@ def run_geo_analysis(
         _output = output_path or "/tmp/geo_output"
     else:
         from etl_agent.spark.session import get_or_create_spark
+
         spark = get_or_create_spark("GeoAnalysis")
         orders = spark.read.parquet(spark_or_orders_path)
         customers = spark.read.parquet(orders_df_or_customers_path)
@@ -48,8 +50,7 @@ def run_geo_analysis(
     )
 
     geo_revenue = (
-        joined
-        .groupBy("country", "region")
+        joined.groupBy("country", "region")
         .agg(
             F.sum(amount_col).alias("total_revenue"),
             F.countDistinct("customer_id").alias("unique_customers"),

@@ -8,6 +8,7 @@ runs correctly from YAML story → DONE status.
 Run with: make test-integration
 Environment: Requires docker-compose services (Postgres, Redis, LocalStack)
 """
+
 from __future__ import annotations
 
 import json
@@ -143,6 +144,7 @@ def mock_airflow_trigger():
 
 # ─── Test: Full Pipeline (no approval) ───────────────────────────────────────
 
+
 class TestFullPipelineRun:
     @pytest.mark.asyncio
     @pytest.mark.integration
@@ -157,8 +159,8 @@ class TestFullPipelineRun:
         mock_commit_message_response,
     ) -> None:
         """Full pipeline: PENDING → PARSING → CODING → TESTING → PR → DEPLOY → DONE"""
-        from etl_agent.core.models import RunStatus
         from etl_agent.agents.orchestrator import run_pipeline
+        from etl_agent.core.models import RunStatus
 
         story = yaml.safe_load(MINIMAL_STORY_YAML)
 
@@ -166,7 +168,9 @@ class TestFullPipelineRun:
             patch("etl_agent.agents.story_parser.StoryParserAgent._llm") as mock_parser_llm,
             patch("etl_agent.agents.coding_agent.CodingAgent._llm") as mock_coder_llm,
             patch("etl_agent.agents.test_agent.TestAgent._llm") as mock_test_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_passing),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_passing
+            ),
             patch("etl_agent.agents.pr_agent.GitHubTools", return_value=mock_github_tools),
             patch("etl_agent.agents.pr_agent.PRAgent._llm") as mock_pr_llm,
             patch("etl_agent.agents.deploy_agent.AWSTools", return_value=mock_aws_tools),
@@ -210,8 +214,8 @@ class TestFullPipelineRun:
         mock_commit_message_response,
     ) -> None:
         """Test that the pipeline retries when tests fail on first attempt."""
-        from etl_agent.core.models import RunStatus
         from etl_agent.agents.orchestrator import run_pipeline
+        from etl_agent.core.models import RunStatus
 
         # First call fails, second passes
         failing_result = MagicMock(
@@ -231,7 +235,10 @@ class TestFullPipelineRun:
             patch("etl_agent.agents.story_parser.StoryParserAgent._llm") as mock_parser_llm,
             patch("etl_agent.agents.coding_agent.CodingAgent._llm") as mock_coder_llm,
             patch("etl_agent.agents.test_agent.TestAgent._llm") as mock_test_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", side_effect=[failing_result, passing_result]),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run",
+                side_effect=[failing_result, passing_result],
+            ),
             patch("etl_agent.agents.pr_agent.GitHubTools", return_value=mock_github_tools),
             patch("etl_agent.agents.pr_agent.PRAgent._llm") as mock_pr_llm,
             patch("etl_agent.agents.deploy_agent.AWSTools", return_value=mock_aws_tools),
@@ -270,8 +277,8 @@ class TestFullPipelineRun:
         mock_test_agent_response,
     ) -> None:
         """Test that the pipeline fails after max_retries exceeded."""
-        from etl_agent.core.models import RunStatus
         from etl_agent.agents.orchestrator import run_pipeline
+        from etl_agent.core.models import RunStatus
 
         always_failing = MagicMock(
             returncode=1,
@@ -304,13 +311,16 @@ class TestFullPipelineRun:
 
 # ─── Test: API endpoints ──────────────────────────────────────────────────────
 
+
 class TestAPIEndpoints:
     @pytest.fixture
     def test_client(self):
         """Create a FastAPI test client."""
         try:
             from fastapi.testclient import TestClient
+
             from etl_agent.api.main import create_app
+
             app = create_app()
             return TestClient(app)
         except Exception:

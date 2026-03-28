@@ -3,6 +3,7 @@ Story Parser Agent — parses a UserStory YAML into a structured ETLSpec.
 Uses the ReactAgent loop: if the LLM returns malformed JSON it is shown the
 parse error and asked to return corrected JSON (up to 3 attempts).
 """
+
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -57,7 +58,9 @@ class StoryParserAgent(ReactAgent):
             logger.error("story_parser_call_failed", error=str(e))
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True
+    )
     async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
@@ -67,18 +70,20 @@ class StoryParserAgent(ReactAgent):
     @staticmethod
     def _validate_json(raw: str) -> tuple[bool, str]:
         """Check that the response contains a valid JSON ETLSpec block."""
-        import json, re
+        import json
+        import re
+
         json_match = re.search(r"```json\n(.*?)\n```", raw, re.DOTALL)
         candidate = json_match.group(1) if json_match else raw
         try:
             data = json.loads(candidate)
-            ETLSpec(**data)   # validate pydantic model
+            ETLSpec(**data)  # validate pydantic model
             return True, ""
         except Exception as exc:
             return False, str(exc)
 
     @staticmethod
-    def _fix_message(raw: str, error: str, attempt: int) -> str:
+    def _fix_message(error: str) -> str:
         return (
             f"Your previous response could not be parsed as a valid ETLSpec JSON.\n\n"
             f"Error: {error}\n\n"
@@ -100,7 +105,9 @@ class StoryParserAgent(ReactAgent):
                 agent_name="story_parser",
             )
 
-            import json, re
+            import json
+            import re
+
             json_match = re.search(r"```json\n(.*?)\n```", raw_response, re.DOTALL)
             spec_data = json.loads(json_match.group(1) if json_match else raw_response)
             etl_spec = ETLSpec(**spec_data)
@@ -114,4 +121,6 @@ class StoryParserAgent(ReactAgent):
 
         except Exception as e:
             logger.error("story_parser_failed", error=str(e))
-            raise StoryParseError(f"Failed to parse story: {e}", context={"story_id": story.id}) from e
+            raise StoryParseError(
+                f"Failed to parse story: {e}", context={"story_id": story.id}
+            ) from e

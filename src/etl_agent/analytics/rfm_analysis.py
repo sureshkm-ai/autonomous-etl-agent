@@ -2,6 +2,7 @@
 RFM (Recency, Frequency, Monetary) analysis pipeline.
 Scores customers for targeted marketing campaigns (e.g. Amazon iPhone 17 launch).
 """
+
 from __future__ import annotations
 
 from etl_agent.core.logging import get_logger
@@ -33,7 +34,7 @@ def run_rfm_analysis(
     Each metric scored 1-5 via quintile bucketing.
     Combined rfm_score = R + F + M (range 3–15).
     """
-    from pyspark.sql import SparkSession, DataFrame
+    from pyspark.sql import DataFrame, SparkSession
     from pyspark.sql import functions as F
 
     # ── Resolve calling convention ────────────────────────────────────────────
@@ -45,6 +46,7 @@ def run_rfm_analysis(
     else:
         # Path-based: spark_or_path is orders_path string
         from etl_agent.spark.session import get_or_create_spark
+
         spark = get_or_create_spark("RFMAnalysis")
         orders_df = spark.read.parquet(spark_or_path)
         _output_path = orders_df_or_output or output_path or "/tmp/rfm_output"
@@ -78,8 +80,7 @@ def run_rfm_analysis(
         return expr.otherwise(5 if ascending else 1)
 
     rfm_scored = (
-        rfm
-        .withColumn("r_score", quintile_score("recency_days", ascending=False))
+        rfm.withColumn("r_score", quintile_score("recency_days", ascending=False))
         .withColumn("f_score", quintile_score("frequency", ascending=True))
         .withColumn("m_score", quintile_score("monetary", ascending=True))
         .withColumn("rfm_score", F.col("r_score") + F.col("f_score") + F.col("m_score"))
@@ -87,16 +88,16 @@ def run_rfm_analysis(
             "rfm_segment",
             F.when(F.col("rfm_score") >= 13, "Champions")
             .when(F.col("rfm_score") >= 10, "Loyal Customers")
-            .when(F.col("rfm_score") >= 7,  "Potential Loyalists")
-            .when(F.col("rfm_score") >= 4,  "At Risk")
+            .when(F.col("rfm_score") >= 7, "Potential Loyalists")
+            .when(F.col("rfm_score") >= 4, "At Risk")
             .otherwise("Lost"),
         )
     )
 
     # ── Write to Delta Lake ───────────────────────────────────────────────────
-    rfm_scored.write.format("delta").mode("overwrite").option(
-        "overwriteSchema", "true"
-    ).save(_output_path)
+    rfm_scored.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(
+        _output_path
+    )
 
     logger.info(
         "rfm_analysis_completed",

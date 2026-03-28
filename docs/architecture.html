@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomous ETL Agent — Architecture Diagram</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    padding: 32px;
+    min-width: 1400px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 32px;
+  }
+
+  /* ─── LEGEND ─── */
+  .legend {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    justify-content: center; margin-bottom: 28px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ─── MAIN GRID ─── */
+  .canvas {
+    display: grid;
+    grid-template-columns: 170px 1fr 220px;
+    grid-template-rows: auto auto auto auto auto auto;
+    gap: 14px;
+  }
+
+  /* ─── LANE LABELS ─── */
+  .lane-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border-left: 3px solid;
+    border-radius: 4px 0 0 4px;
+  }
+
+  /* ─── SECTION PANELS ─── */
+  .section {
+    border: 1px solid;
+    border-radius: 8px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  /* ─── BOXES ─── */
+  .box-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; align-items: flex-start; }
+  .box {
+    border: 1px solid;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .box .label { font-weight: 700; font-size: 11px; }
+  .box .sub {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  .box-wide { min-width: 130px; }
+  .box-sm   { min-width: 90px; }
+  .box-xs   { min-width: 76px; }
+
+  /* ─── PIPELINE FLOW ─── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px 0 8px;
+  }
+  .pipe-node {
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    text-align: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .pipe-node .pn-title { font-weight: 700; font-size: 11px; }
+  .pipe-node .pn-sub   { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+  .pipe-arrow {
+    font-size: 18px;
+    color: #475569;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .pipe-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .pipe-branch-label {
+    font-size: 9px;
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  /* ─── COLOURS ─── */
+
+  /* Users */
+  .c-user { background: #1e293b; border-color: #3b82f6; }
+  .c-user .section-title { color: #60a5fa; }
+  .box-user { background: rgba(59,130,246,0.12); border-color: #3b82f6; color: #93c5fd; }
+
+  /* CI/CD */
+  .c-cicd { background: #1a1a2e; border-color: #8b5cf6; }
+  .c-cicd .section-title { color: #a78bfa; }
+  .box-cicd { background: rgba(139,92,246,0.12); border-color: #8b5cf6; color: #c4b5fd; }
+
+  /* Infra */
+  .c-infra { background: #1a2332; border-color: #f59e0b; }
+  .c-infra .section-title { color: #fbbf24; }
+  .box-infra { background: rgba(245,158,11,0.1); border-color: #f59e0b; color: #fcd34d; }
+
+  /* API */
+  .c-api { background: #0f2027; border-color: #10b981; }
+  .c-api .section-title { color: #34d399; }
+  .box-api { background: rgba(16,185,129,0.1); border-color: #10b981; color: #6ee7b7; }
+  .box-mw  { background: rgba(16,185,129,0.06); border-color: #065f46; color: #6ee7b7; }
+
+  /* Pipeline */
+  .c-pipe { background: #1a0f2e; border-color: #e879f9; }
+  .c-pipe .section-title { color: #f0abfc; }
+
+  .pn-parse   { background: rgba(167,139,250,0.15); border-color: #7c3aed; color: #c4b5fd; }
+  .pn-code    { background: rgba(59,130,246,0.15);  border-color: #2563eb; color: #93c5fd; }
+  .pn-test    { background: rgba(16,185,129,0.15);  border-color: #059669; color: #6ee7b7; }
+  .pn-gate    { background: rgba(234,179,8,0.15);   border-color: #b45309; color: #fcd34d; }
+  .pn-pr      { background: rgba(236,72,153,0.15);  border-color: #be185d; color: #f9a8d4; }
+  .pn-deploy  { background: rgba(249,115,22,0.15);  border-color: #c2410c; color: #fdba74; }
+  .pn-dry     { background: rgba(99,102,241,0.15);  border-color: #4338ca; color: #a5b4fc; }
+  .pn-await   { background: rgba(234,179,8,0.15);   border-color: #92400e; color: #fde68a; }
+
+  /* Core */
+  .c-core { background: #101820; border-color: #0ea5e9; }
+  .c-core .section-title { color: #38bdf8; }
+  .box-core { background: rgba(14,165,233,0.1); border-color: #0284c7; color: #7dd3fc; }
+
+  /* DB */
+  .c-db { background: #0f1a10; border-color: #4ade80; }
+  .c-db .section-title { color: #86efac; }
+  .box-db { background: rgba(74,222,128,0.1); border-color: #16a34a; color: #86efac; }
+
+  /* Tools */
+  .c-tools { background: #1a1410; border-color: #fb923c; }
+  .c-tools .section-title { color: #fdba74; }
+  .box-tool { background: rgba(251,146,60,0.1); border-color: #c2410c; color: #fdba74; }
+
+  /* Prompts */
+  .c-prompts { background: #110f1a; border-color: #818cf8; }
+  .c-prompts .section-title { color: #a5b4fc; }
+  .box-prompt { background: rgba(129,140,248,0.1); border-color: #4338ca; color: #a5b4fc; }
+
+  /* Spark */
+  .c-spark { background: #1a0f0a; border-color: #f97316; }
+  .c-spark .section-title { color: #fb923c; }
+  .box-spark { background: rgba(249,115,22,0.1); border-color: #9a3412; color: #fdba74; }
+
+  /* Analytics */
+  .c-analytics { background: #0a1a14; border-color: #2dd4bf; }
+  .c-analytics .section-title { color: #5eead4; }
+  .box-analytics { background: rgba(45,212,191,0.1); border-color: #0f766e; color: #99f6e4; }
+
+  /* External services */
+  .c-ext { background: #1c1917; border-color: #78716c; }
+  .c-ext .section-title { color: #a8a29e; }
+  .box-ext { background: rgba(120,113,108,0.12); border-color: #57534e; color: #d6d3d1; }
+
+  /* Lane colours */
+  .lane-cicd     { border-color: #8b5cf6; color: #8b5cf6; }
+  .lane-infra    { border-color: #f59e0b; color: #f59e0b; }
+  .lane-api      { border-color: #10b981; color: #10b981; }
+  .lane-pipeline { border-color: #e879f9; color: #e879f9; }
+  .lane-core     { border-color: #0ea5e9; color: #0ea5e9; }
+  .lane-data     { border-color: #4ade80; color: #4ade80; }
+  .lane-spark    { border-color: #f97316; color: #f97316; }
+
+  /* ─── RIGHT COLUMN (external services) ─── */
+  .ext-col {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ─── FLOW ARROWS between sections ─── */
+  .flow-down {
+    text-align: center;
+    font-size: 20px;
+    color: #374151;
+    line-height: 1;
+    padding: 2px 0;
+  }
+
+  /* ─── DATA FLOW LABELS ─── */
+  .flow-label {
+    font-size: 9px;
+    color: #4b5563;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* ─── FULL WIDTH ROWS ─── */
+  .full-row { grid-column: 1 / 3; }
+  .label-col { grid-column: 1; display: flex; align-items: stretch; }
+  .content-col { grid-column: 2; }
+
+  /* ─── INLINE BADGE ─── */
+  .badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  .badge-new  { background: #14532d; color: #86efac; border: 1px solid #166534; }
+  .badge-gov  { background: #1e1b4b; color: #a5b4fc; border: 1px solid #3730a3; }
+
+  /* ─── GOVERNANCE CALLOUT ─── */
+  .gov-bar {
+    background: rgba(139,92,246,0.08);
+    border: 1px solid #4c1d95;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 10px;
+    color: #c4b5fd;
+    margin-top: 8px;
+  }
+  .gov-bar strong { color: #a78bfa; }
+
+  hr.divider {
+    border: none;
+    border-top: 1px dashed rgba(255,255,255,0.06);
+    margin: 8px 0;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 9px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin: 1px 2px;
+    color: #94a3b8;
+  }
+
+  /* print */
+  @media print {
+    body { background: white; color: black; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Autonomous ETL Agent — Full Architecture</h1>
+<p class="subtitle">LangGraph · FastAPI · Anthropic Claude · AWS (ECR / EC2 / S3) · GitHub Actions · PySpark</p>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Client / Users</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> CI / CD</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Infrastructure</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> API Layer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e879f9"></div> Agent Pipeline</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> Core / Governance</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Database / Persistence</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div> Tools / Integrations</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#818cf8"></div> Prompt Library</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Spark / Analytics</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#78716c"></div> External Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#86efac; border:1px solid #166534"></div> NEW (governance)</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="canvas">
+
+  <!-- ── ROW 1: CLIENTS ── -->
+  <div class="lane-label lane-api" style="grid-row:1;grid-column:1">Clients</div>
+  <div class="section c-user" style="grid-row:1;grid-column:2">
+    <div class="section-title">👤 Users &amp; Clients</div>
+    <div class="box-row">
+      <div class="box box-user box-wide">
+        <div class="label">Browser / SPA</div>
+        <div class="sub">POST /api/v1/stories<br>GET /api/v1/runs/{id}<br>GET /api/v1/runs/{id}/audit</div>
+      </div>
+      <div class="box box-user box-wide">
+        <div class="label">curl / REST client</div>
+        <div class="sub">X-API-Key header<br>JSON story payload<br>?dry_run=true supported</div>
+      </div>
+      <div class="box box-user box-sm">
+        <div class="label">CLI</div>
+        <div class="sub">cli.py<br>direct pipeline</div>
+      </div>
+      <div class="box box-user box-sm">
+        <div class="label">Operator</div>
+        <div class="sub">POST /approve<br>manual gate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 2: CI/CD ── -->
+  <div class="lane-label lane-cicd" style="grid-row:2;grid-column:1">CI / CD</div>
+  <div class="section c-cicd" style="grid-row:2;grid-column:2">
+    <div class="section-title">⚙️ GitHub Actions</div>
+    <div class="box-row">
+      <div class="box box-cicd box-wide">
+        <div class="label">ci.yml  (on: push / PR)</div>
+        <div class="sub">
+          <span class="tag">ruff lint</span>
+          <span class="tag">ruff format</span>
+          <span class="tag">mypy typecheck</span>
+          <span class="tag">pytest unit</span>
+          <span class="tag">pytest integration</span>
+          <span class="tag">codecov upload</span>
+        </div>
+      </div>
+      <div class="box box-cicd box-wide">
+        <div class="label">cd.yml  (on: push main)</div>
+        <div class="sub">
+          <span class="tag">aws-actions/configure-aws-credentials</span>
+          <span class="tag">amazon-ecr-login</span>
+          <span class="tag">docker build &amp; push ECR</span>
+          <span class="tag">SSH → EC2 docker pull &amp; compose up</span>
+          <span class="tag">alembic migrate</span>
+          <span class="tag">smoke test /health</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 3: INFRA ── -->
+  <div class="lane-label lane-infra" style="grid-row:3;grid-column:1">Infrastructure</div>
+  <div class="section c-infra" style="grid-row:3;grid-column:2">
+    <div class="section-title">🏗️ Infrastructure (Terraform + Docker)</div>
+    <div class="box-row">
+      <div class="box box-infra box-wide">
+        <div class="label">Amazon ECR</div>
+        <div class="sub">ecr.tf<br>etl-agent-app repository<br>image tag = git SHA</div>
+      </div>
+      <div class="box box-infra box-wide">
+        <div class="label">Amazon EC2</div>
+        <div class="sub">ec2.tf · t3.medium<br>docker compose<br>etl-agent-app container</div>
+      </div>
+      <div class="box box-infra">
+        <div class="label">Dockerfile</div>
+        <div class="sub">infra/Dockerfile<br>python 3.12-slim<br>uv install deps<br>uvicorn entrypoint</div>
+      </div>
+      <div class="box box-infra">
+        <div class="label">Security Group</div>
+        <div class="sub">security_group.tf<br>ports 8000, 22<br>inbound rules</div>
+      </div>
+      <div class="box box-infra">
+        <div class="label">IAM</div>
+        <div class="sub">iam.tf<br>EC2 instance role<br>S3 + ECR access</div>
+      </div>
+    </div>
+    <div class="box-row" style="margin-top:4px">
+      <div class="box box-infra box-wide">
+        <div class="label">Amazon S3 <span class="badge badge-gov">GOVERNANCE</span></div>
+        <div class="sub">s3_lifecycle.tf · KMS SSE · Versioning enabled<br>
+          Lifecycle by tag: public/internal→365d · confidential→Glacier@30d,730d · restricted→Glacier@7d,7yr</div>
+      </div>
+      <div class="box box-infra">
+        <div class="label">Alembic Migrations</div>
+        <div class="sub">database/migrations/env.py<br>auto-run on deploy</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 4: API ── -->
+  <div class="lane-label lane-api" style="grid-row:4;grid-column:1">API Layer</div>
+  <div class="section c-api" style="grid-row:4;grid-column:2">
+    <div class="section-title">🌐 FastAPI Application  (api/main.py)</div>
+
+    <!-- Middleware stack -->
+    <div style="font-size:10px;color:#6ee7b7;font-weight:700;margin-bottom:4px;">▼ Middleware Stack (outermost → innermost)</div>
+    <div class="box-row" style="align-items:center">
+      <div class="box box-mw">
+        <div class="label">CORSMiddleware</div>
+        <div class="sub">origins from settings<br>.cors_origins env var</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="box box-mw">
+        <div class="label">BodySizeLimitMiddleware <span class="badge badge-new">NEW</span></div>
+        <div class="sub">HTTP 413 if body<br>&gt; max_request_body_bytes<br>(default 32 KiB)</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="box box-mw">
+        <div class="label">APIKeyMiddleware</div>
+        <div class="sub">X-API-Key header<br>EXCLUDED_PREFIXES:<br>/ui /static /docs /redoc /</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="box box-mw">
+        <div class="label">slowapi Rate Limiter <span class="badge badge-new">NEW</span></div>
+        <div class="sub">120 req/min per IP<br>RateLimitExceeded→429</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Routes -->
+    <div style="font-size:10px;color:#6ee7b7;font-weight:700;margin-bottom:4px;margin-top:4px;">▼ Route Handlers</div>
+    <div class="box-row">
+      <div class="box box-api">
+        <div class="label">POST /api/v1/stories</div>
+        <div class="sub">stories.py<br>Accepts UserStory JSON<br>?dry_run=true query param<br>Returns run_id immediately<br>Starts background task</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">GET /api/v1/runs/{id}</div>
+        <div class="sub">runs.py<br>Live status from DB<br>token usage, cost, classification<br>approval_required flag</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">GET /api/v1/runs/{id}/audit <span class="badge badge-new">NEW</span></div>
+        <div class="sub">runs.py<br>Append-only event trail<br>actor, trigger_source<br>status transitions</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">GET /api/v1/runs</div>
+        <div class="sub">Paginated list<br>?limit=50&amp;offset=0</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">POST /api/v1/runs/{id}/approve <span class="badge badge-new">NEW</span></div>
+        <div class="sub">Human approval gate<br>{actor, rationale}<br>AWAITING→DEPLOYING</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">GET /api/v1/health</div>
+        <div class="sub">health.py · liveness check</div>
+      </div>
+      <div class="box box-api">
+        <div class="label">GET /ui/*</div>
+        <div class="sub">StaticFiles<br>single-page HTML<br>story submission form<br>transformations builder</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROW 5: PIPELINE ── -->
+  <div class="lane-label lane-pipeline" style="grid-row:5;grid-column:1">Agent Pipeline</div>
+  <div class="section c-pipe" style="grid-row:5;grid-column:2">
+    <div class="section-title">🤖 LangGraph Agent Pipeline  (agents/orchestrator.py)</div>
+    <div style="font-size:10px;color:#d8b4fe;margin-bottom:6px;">
+      StateGraph(GraphState) · stream_pipeline(story, on_update, dry_run) · RunTokenTracker initialised per run
+    </div>
+
+    <!-- Pipeline flow -->
+    <div class="pipeline">
+      <div class="pipe-node pn-parse">
+        <div class="pn-title">parse_story</div>
+        <div class="pn-sub">StoryParserAgent<br>story_parser.py prompt<br>few-shot examples<br>→ ETLSpec</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <div class="pipe-node pn-code">
+        <div class="pn-title">generate_code</div>
+        <div class="pn-sub">CodingAgent<br>code_generator.py prompt<br>→ PySpark pipeline.py<br>syntax validation</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <!-- Conditional dry_run branch -->
+      <div class="pipe-branch">
+        <div class="pipe-branch-label">dry_run=true</div>
+        <div class="pipe-node pn-dry" style="padding:5px 8px">
+          <div class="pn-title">dry_run_end</div>
+          <div class="pn-sub">DRY_RUN_COMPLETE<br>(terminal)</div>
+        </div>
+        <div class="pipe-branch-label" style="color:#e879f9">dry_run=false ↓</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <div class="pipe-node pn-test">
+        <div class="pn-title">run_tests</div>
+        <div class="pn-sub">TestAgent<br>test_generator.py prompt<br>PySpark conftest.py<br>pytest subprocess<br>ReAct LLM fix loop</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <!-- Approval gate -->
+      <div class="pipe-branch">
+        <div class="pipe-branch-label" style="color:#fbbf24">approval_required</div>
+        <div class="pipe-node pn-await" style="padding:5px 8px">
+          <div class="pn-title">AWAITING_APPROVAL</div>
+          <div class="pn-sub">confidential/restricted<br>or budget &gt; 75%<br>POST /approve to resume</div>
+        </div>
+        <div class="pipe-branch-label" style="color:#4ade80">approved ↓</div>
+        <div class="pipe-node pn-gate" style="margin-top:4px">
+          <div class="pn-title">approval_gate</div>
+          <div class="pn-sub">DataClassification check<br>RunTokenTracker.needs_approval()<br>→ AWAITING or PR_CREATING</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <div class="pipe-node pn-pr">
+        <div class="pn-title">create_pr</div>
+        <div class="pn-sub">PRAgent<br>GitHubTools<br>create_issue()<br>create_pull_request()</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+
+      <div class="pipe-node pn-deploy">
+        <div class="pn-title">deploy</div>
+        <div class="pn-sub">DeployAgent<br>upload_pipeline_script()<br>S3 + classification tags<br>trigger_airflow_dag()</div>
+      </div>
+    </div>
+
+    <div class="gov-bar">
+      <strong>Governance layer (every node):</strong>
+      ReactAgent._governed_llm_call() → model allow-list check → SHA-256 prompt hash → RunTokenTracker.record_step() → check_budget() (TokenBudgetExceeded) · run_id + story_id in all log fields
+    </div>
+  </div>
+
+  <!-- ── ROW 6: CORE + DB + TOOLS (three sub-sections) ── -->
+  <div class="lane-label lane-core" style="grid-row:6;grid-column:1">Core / Data / Tools</div>
+  <div style="grid-row:6;grid-column:2;display:flex;flex-direction:column;gap:10px;">
+
+    <!-- Core -->
+    <div class="section c-core">
+      <div class="section-title">🧠 Core Layer</div>
+      <div class="box-row">
+        <div class="box box-core">
+          <div class="label">config.py</div>
+          <div class="sub">pydantic-settings<br>anthropic_api_key · llm_model<br>max_tokens_per_run · budget_approval_threshold_pct<br>approved_models · fallback_model<br>cors_origins · max_request_body_bytes<br>database_url · airflow_enabled</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">models.py</div>
+          <div class="sub">UserStory (Pydantic)<br>  id: ^[\w\-\.]+$<br>  description: max 2000<br>  tags: max 50 chars<br>  data_classification: DataClassification<br>ETLSpec · Source · Target · Transformation<br>RunStatus: PENDING→PARSING→CODING→<br>  TESTING→PR_CREATING→DEPLOYING→<br>  DONE / FAILED / AWAITING_APPROVAL /<br>  DRY_RUN_COMPLETE<br>DataClassification: public/internal/<br>  confidential/restricted<br>RunResult · TestResult</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">state.py</div>
+          <div class="sub">GraphState(TypedDict)<br>story · run_id · story_id<br>status · current_stage<br>etl_spec · generated_code<br>test_results<br>github_pr_url · s3_artifact_url<br>token_tracker · approval_required<br>data_classification · dry_run</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">llm_governance.py <span class="badge badge-new">NEW</span></div>
+          <div class="sub">RunTokenTracker<br>  record_step(model, tokens, agent)<br>  check_budget() → TokenBudgetExceeded<br>  needs_approval(threshold_pct=75)<br>  to_dict() → token summary<br>compute_prompt_hash(prompt) → SHA-256[:16]<br>estimate_cost_usd(model, in, out)<br>_COST_PER_MTK rates (Opus/Sonnet/Haiku)</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">audit.py <span class="badge badge-new">NEW</span></div>
+          <div class="sub">write_audit_event(event_type, run_id,<br>  story_id, actor, trigger_source,<br>  from_status, to_status, payload)<br>list_audit_events(run_id) → list<br>Events: STORY_SUBMITTED · RUN_CREATED<br>  PARSING_STARTED · CODING_STARTED<br>  TESTING_STARTED · PR_CREATING<br>  DEPLOYMENT_APPROVED · RUN_COMPLETED<br>  RUN_FAILED · RUN_CANCELLED · OVERRIDE_GRANTED</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">logging.py</div>
+          <div class="sub">structlog<br>JSON in prod<br>dev console in debug<br>run_id context binding</div>
+        </div>
+        <div class="box box-core">
+          <div class="label">exceptions.py</div>
+          <div class="sub">TestGenerationError<br>TokenBudgetExceeded<br>PipelineError</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Database -->
+    <div class="section c-db">
+      <div class="section-title">🗄️ Database Layer</div>
+      <div class="box-row">
+        <div class="box box-db">
+          <div class="label">session.py</div>
+          <div class="sub">create_async_engine(settings.database_url)<br>SQLite dev / Postgres prod<br>get_session_factory() · create_all_tables()<br>dispose_engine() on shutdown</div>
+        </div>
+        <div class="box box-db">
+          <div class="label">UserStoryRecord</div>
+          <div class="sub">user_stories table<br>story_id · title · description<br>source_path/format · target_path/format<br>target_mode · data_classification<br>tags · raw_json · submitted_at</div>
+        </div>
+        <div class="box box-db">
+          <div class="label">PipelineRunRecord <span class="badge badge-gov">EXTENDED</span></div>
+          <div class="sub">pipeline_runs table<br>run_id · story_id · status · current_stage<br>github_pr_url · s3_artifact_url · commit_sha<br>test_passed/total/coverage<br>model_name · system_prompt_hash · task_prompt_hash<br>total_input_tokens · total_output_tokens · total_cost_usd<br>budget_pct · token_steps_json<br>approval_required · approver_actor · approval_timestamp<br>data_classification · lineage_snapshot_json</div>
+        </div>
+        <div class="box box-db">
+          <div class="label">AuditEventRecord <span class="badge badge-new">NEW</span></div>
+          <div class="sub">audit_events table (append-only)<br>event_type · run_id · story_id<br>actor · trigger_source<br>from_status · to_status<br>payload_json · timestamp<br>Never modified after insertion</div>
+        </div>
+        <div class="box box-db">
+          <div class="label">run_store.py <span class="badge badge-new">NEW</span></div>
+          <div class="sub">Replaces in-memory dict<br>create_run() · update_run() · get_run()<br>list_runs() — sync wrappers<br>async_get_run() · async_update_run()<br>_run_async() ThreadPoolExecutor bridge</div>
+        </div>
+        <div class="box box-db">
+          <div class="label">Alembic</div>
+          <div class="sub">database/migrations/env.py<br>schema versioning<br>run on every CD deploy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools + Prompts + Spark/Analytics -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+
+      <div class="section c-tools">
+        <div class="section-title">🔧 Tools</div>
+        <div class="box box-tool" style="margin-bottom:6px">
+          <div class="label">aws_tools.py <span class="badge badge-gov">ENHANCED</span></div>
+          <div class="sub">upload_artifact()<br>→ S3 put_object<br>Tags: data_classification,<br>pipeline_run_id, story_id,<br>environment, managed_by<br>KMS SSE for confidential+restricted<br>upload_pipeline_script()<br>trigger_airflow_dag()</div>
+        </div>
+        <div class="box box-tool" style="margin-bottom:6px">
+          <div class="label">github_tools.py</div>
+          <div class="sub">GitHubTools (PyGitHub)<br>create_issue(title,body,labels)<br>create_pull_request(title,body,branch)<br>create_branch_from_default()<br>commit_file(path, content, msg)</div>
+        </div>
+        <div class="box box-tool" style="margin-bottom:6px">
+          <div class="label">code_validator.py</div>
+          <div class="sub">validate_python_syntax()<br>AST parse check<br>used by agents before LLM iteration stops</div>
+        </div>
+        <div class="box box-tool">
+          <div class="label">llm_cache.py</div>
+          <div class="sub">configure_llm_cache()<br>SQLiteCache (dev)<br>RedisCache (prod)<br>LangChain globals hook</div>
+        </div>
+      </div>
+
+      <div class="section c-prompts">
+        <div class="section-title">📝 Prompt Library</div>
+        <div class="box box-prompt" style="margin-bottom:6px">
+          <div class="label">story_parser.py</div>
+          <div class="sub">build_story_parser_prompt()<br>Structured extraction<br>→ ETLSpec JSON schema</div>
+        </div>
+        <div class="box box-prompt" style="margin-bottom:6px">
+          <div class="label">code_generator.py</div>
+          <div class="sub">build_code_generator_prompt()<br>PySpark best practices<br>transformation patterns</div>
+        </div>
+        <div class="box box-prompt" style="margin-bottom:6px">
+          <div class="label">test_generator.py</div>
+          <div class="sub">build_test_generator_prompt()<br>+ PySpark rules addendum:<br>mock chaining · count returns<br>no F.col() in assertions</div>
+        </div>
+        <div class="box box-prompt">
+          <div class="label">examples/</div>
+          <div class="sub">code_gen_examples.py<br>story_parser_examples.py<br>test_gen_examples.py<br>Few-shot demonstrations</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="section c-spark">
+          <div class="section-title">⚡ Spark Layer</div>
+          <div class="box box-spark" style="margin-bottom:6px">
+            <div class="label">spark/session.py</div>
+            <div class="sub">SparkSession factory<br>local[*] for tests<br>cluster for prod</div>
+          </div>
+          <div class="box box-spark">
+            <div class="label">spark/optimizer.py</div>
+            <div class="sub">apply_broadcast_hint()<br>broadcast_join()<br>cache_if_reused()<br>tune_partitions()</div>
+          </div>
+        </div>
+
+        <div class="section c-analytics">
+          <div class="section-title">📊 Analytics Modules</div>
+          <div class="box-row">
+            <div class="box box-analytics box-xs"><div class="label">rfm_analysis.py</div><div class="sub">RFM segmentation</div></div>
+            <div class="box box-analytics box-xs"><div class="label">geo_analytics.py</div><div class="sub">Revenue by region</div></div>
+          </div>
+          <div class="box-row">
+            <div class="box box-analytics box-xs"><div class="label">campaign_optimizer.py</div><div class="sub">A/B testing</div></div>
+            <div class="box box-analytics box-xs"><div class="label">customer_intent.py</div><div class="sub">Churn prediction</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT COLUMN: External services ── -->
+  <div class="ext-col">
+
+    <div class="section c-ext">
+      <div class="section-title">☁️ External Services</div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🤖 Anthropic API</div>
+        <div class="sub">claude-sonnet-4-6 (default)<br>claude-opus-4-6<br>claude-haiku-4-5<br>AsyncAnthropic client<br>model allow-list enforced<br>cost: $3/$15 per MTok (Sonnet)</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🐙 GitHub</div>
+        <div class="sub">PyGitHub REST API<br>Branch → Commit → PR<br>Issue creation<br>Label management<br>GITHUB_TOKEN secret</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🪣 Amazon S3</div>
+        <div class="sub">Artifact storage<br>KMS SSE (confidential+)<br>Object tagging<br>Lifecycle by classification<br>Versioning enabled</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🔴 Amazon ECR</div>
+        <div class="sub">etl-agent-app repo<br>image tag = git SHA<br>CD push on merge to main</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🖥️ Amazon EC2</div>
+        <div class="sub">t3.medium<br>Docker Compose<br>port 8000 exposed<br>SSH deploy via CD</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🌊 Apache Airflow</div>
+        <div class="sub">Optional (airflow_enabled)<br>REST API dag trigger<br>BasicAuth<br>DAG conf: run_id + s3_path</div>
+      </div>
+
+      <div class="box box-ext" style="margin-bottom:8px">
+        <div class="label">🔴 Redis</div>
+        <div class="sub">Optional LLM cache<br>(redis_url setting)<br>LangChain RedisCache<br>Falls back to SQLite</div>
+      </div>
+
+      <div class="box box-ext">
+        <div class="label">🗃️ SQLite / Postgres</div>
+        <div class="sub">Dev: sqlite+aiosqlite<br>Prod: postgresql+asyncpg<br>via DATABASE_URL env var<br>3 tables:<br>user_stories<br>pipeline_runs<br>audit_events</div>
+      </div>
+    </div>
+
+    <!-- Data flow summary -->
+    <div class="section" style="border-color:#374151;background:#111827;margin-top:4px">
+      <div class="section-title" style="color:#6b7280;font-size:9px">DATA FLOW SUMMARY</div>
+      <div style="font-size:10px;color:#4b5563;line-height:1.7">
+        <div>1. User POSTs UserStory JSON</div>
+        <div>2. DB persists story + creates run</div>
+        <div>3. Audit: STORY_SUBMITTED + RUN_CREATED</div>
+        <div>4. Background: LangGraph streams nodes</div>
+        <div>5. Each LLM call → prompt hash + token track</div>
+        <div>6. After tests: approval_gate check</div>
+        <div>   • confidential/restricted → HOLD</div>
+        <div>   • budget &gt;75% → HOLD</div>
+        <div>7. PRAgent → GitHub PR + Issue</div>
+        <div>8. DeployAgent → S3 (tagged) + Airflow</div>
+        <div>9. Audit: RUN_COMPLETED event</div>
+      </div>
+    </div>
+
+    <!-- Governance summary -->
+    <div class="section" style="border-color:#4c1d95;background:#0d0b1a;margin-top:4px">
+      <div class="section-title" style="color:#7c3aed;font-size:9px">GOVERNANCE DOMAINS</div>
+      <div style="font-size:10px;color:#6d28d9;line-height:1.8">
+        <div style="color:#a78bfa"><strong>D1</strong> Run Governance</div>
+        <div style="color:#7c3aed;padding-left:8px">DB-backed run store · audit trail</div>
+        <div style="color:#a78bfa"><strong>D2</strong> Security</div>
+        <div style="color:#7c3aed;padding-left:8px">Body limit · rate limit · CORS</div>
+        <div style="color:#a78bfa"><strong>D3</strong> LLM Governance</div>
+        <div style="color:#7c3aed;padding-left:8px">Token budget · prompt hash · model allowlist</div>
+        <div style="color:#a78bfa"><strong>D4</strong> Data Governance</div>
+        <div style="color:#7c3aed;padding-left:8px">DataClassification · S3 tags · lifecycle</div>
+        <div style="color:#a78bfa"><strong>D5</strong> Release Governance</div>
+        <div style="color:#7c3aed;padding-left:8px">dry_run mode · CHANGELOG.md</div>
+        <div style="color:#a78bfa"><strong>D6</strong> Reliability</div>
+        <div style="color:#7c3aed;padding-left:8px">run_id/story_id in all log fields</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;margin-top:24px;font-size:10px;color:#374151">
+  Autonomous ETL Agent · Suresh · Generated 2026-03-22 · All components shown
+</div>
+
+</body>
+</html>

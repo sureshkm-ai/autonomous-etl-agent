@@ -4,6 +4,7 @@ Inherits ReactAgent:
   - LLM loop generates the commit message (retries on empty/malformed output).
   - Tool loop retries GitHub API calls on transient network/rate-limit errors.
 """
+
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -56,7 +57,9 @@ class PRAgent(ReactAgent):
             logger.error("pr_agent_call_failed", error=str(e))
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60), reraise=True)
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=60), reraise=True
+    )
     async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
@@ -69,11 +72,14 @@ class PRAgent(ReactAgent):
         if not msg:
             return False, "Empty commit message"
         if len(msg) > 200:
-            return False, f"Commit message too long ({len(msg)} chars); keep under 72 for the subject line"
+            return (
+                False,
+                f"Commit message too long ({len(msg)} chars); keep under 72 for the subject line",
+            )
         return True, ""
 
     @staticmethod
-    def _fix_commit_msg(raw: str, error: str, attempt: int) -> str:
+    def _fix_commit_msg(error: str) -> str:
         return (
             f"The commit message you wrote has an issue: {error}\n\n"
             "Please write a concise commit message in the format:\n"
@@ -139,7 +145,9 @@ class PRAgent(ReactAgent):
 
             # React tool loop for each GitHub operation
             issue_url = await self.react_tool_loop(
-                action=lambda: gh.create_issue(title=issue_title, body=issue_body, labels=issue_labels),
+                action=lambda: gh.create_issue(
+                    title=issue_title, body=issue_body, labels=issue_labels
+                ),
                 errors_to_catch=(GithubException, Exception),
                 agent_name="pr_agent",
                 action_name="create_issue",
@@ -157,11 +165,17 @@ class PRAgent(ReactAgent):
 
             files: dict[str, str] = {}
             if state.get("generated_code"):
-                files[f"src/generated_pipelines/{etl_spec.pipeline_name}.py"] = state["generated_code"]
+                files[f"src/generated_pipelines/{etl_spec.pipeline_name}.py"] = state[
+                    "generated_code"
+                ]
             if state.get("generated_tests"):
-                files[f"tests/generated_tests/test_{etl_spec.pipeline_name}.py"] = state["generated_tests"]
+                files[f"tests/generated_tests/test_{etl_spec.pipeline_name}.py"] = state[
+                    "generated_tests"
+                ]
             if state.get("generated_readme"):
-                files[f"src/generated_pipelines/{etl_spec.pipeline_name}_README.md"] = state["generated_readme"]
+                files[f"src/generated_pipelines/{etl_spec.pipeline_name}_README.md"] = state[
+                    "generated_readme"
+                ]
             if files:
                 await self.react_tool_loop(
                     action=lambda: gh.commit_files(branch_name, files, commit_message),

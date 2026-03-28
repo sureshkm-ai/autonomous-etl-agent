@@ -6,8 +6,8 @@ Usage:
   uv run etl-agent run --story config/story_examples/rfm_analysis.yaml
   uv run etl-agent run --story config/story_examples/clean_nulls.yaml --no-deploy
 """
+
 from pathlib import Path
-from typing import Optional
 
 import typer
 import yaml
@@ -28,9 +28,7 @@ logger = get_logger(__name__)
 
 @app.command()
 def run(
-    story: Path = typer.Option(
-        ..., "--story", "-s", help="Path to the user story YAML file"
-    ),
+    story: Path = typer.Option(..., "--story", "-s", help="Path to the user story YAML file"),
     deploy: bool = typer.Option(
         True, "--deploy/--no-deploy", help="Trigger Airflow deployment after PR"
     ),
@@ -44,8 +42,7 @@ def run(
 
     console.print(
         Panel.fit(
-            "[bold cyan]Autonomous ETL Agent[/bold cyan]\n"
-            f"Story: [yellow]{story}[/yellow]",
+            f"[bold cyan]Autonomous ETL Agent[/bold cyan]\nStory: [yellow]{story}[/yellow]",
             border_style="cyan",
         )
     )
@@ -68,6 +65,7 @@ def run(
 
     # Run the agent pipeline
     import asyncio
+
     from etl_agent.agents.orchestrator import run_pipeline
 
     result = asyncio.run(run_pipeline(user_story, deploy=deploy))
@@ -75,7 +73,9 @@ def run(
     if result.github_pr_url:
         console.print(f"\n✅ [bold green]PR created:[/bold green] {result.github_pr_url}")
     if result.airflow_dag_run_id:
-        console.print(f"✅ [bold green]Airflow DAG triggered:[/bold green] {result.airflow_dag_run_id}")
+        console.print(
+            f"✅ [bold green]Airflow DAG triggered:[/bold green] {result.airflow_dag_run_id}"
+        )
     if result.status.value == "FAILED":
         console.print(f"\n[red]Pipeline failed: {result.error_message}[/red]")
         raise typer.Exit(code=1)
@@ -85,6 +85,7 @@ def run(
 def serve() -> None:
     """Start the FastAPI web server."""
     import uvicorn
+
     from etl_agent.core.config import get_settings
 
     settings = get_settings()

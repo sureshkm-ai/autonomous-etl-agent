@@ -6,12 +6,15 @@ S3 fixtures now use LocalStack instead of moto.
 Start LocalStack before running integration tests:
   cd infra && docker-compose up -d localstack
 """
+
 # ── Disable LangSmith/LangChain tracing ───────────────────────────────────────
 # This MUST happen at module level, before any test modules import langchain_core.
 # The tracer caches its enabled state; env-var-only fixes in function-scoped
 # fixtures run too late.  We also directly monkey-patch tracing_is_enabled() so
 # the tracer stays off even if it has already cached a True value.
+import contextlib
 import os
+
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 os.environ["LANGSMITH_TRACING"] = "false"
 os.environ.pop("LANGCHAIN_API_KEY", None)
@@ -19,6 +22,7 @@ os.environ.pop("LANGSMITH_API_KEY", None)
 
 try:
     import langsmith.utils as _ls_utils  # noqa: E402
+
     _ls_utils.tracing_is_enabled = lambda: False  # override any cached True
     _ls_utils.test_tracking_is_disabled = lambda: True
 except Exception:  # langsmith not installed or API changed
@@ -26,6 +30,7 @@ except Exception:  # langsmith not installed or API changed
 
 try:
     from langsmith import utils as _ls2
+
     _ls2.tracing_is_enabled = lambda: False
 except Exception:
     pass
@@ -44,11 +49,9 @@ from etl_agent.core.models import (
     ETLOperation,
     ETLSpec,
     OutputFormat,
-    RunStatus,
     TransformationStep,
     UserStory,
 )
-
 
 # ── LocalStack config ──────────────────────────────────────────────────────────
 # Use AWS_ENDPOINT_URL env var if set (e.g. inside docker-compose: http://localstack:4566)
@@ -102,10 +105,8 @@ def mock_s3() -> Generator[Any, None, None]:
     buckets = ["test-raw", "test-processed", "test-artifacts"]
     client = _localstack_s3_client()
     for bucket in buckets:
-        try:
+        with contextlib.suppress(client.exceptions.BucketAlreadyOwnedByYou):
             client.create_bucket(Bucket=bucket)
-        except client.exceptions.BucketAlreadyOwnedByYou:
-            pass  # already exists from a previous test run
 
     yield client
 
@@ -179,9 +180,11 @@ def sample_etl_spec(sample_story: UserStory) -> ETLSpec:
 def load_story():
     """Factory fixture: loads a story YAML from the fixtures directory."""
     import yaml
+
     def _load(story_name: str) -> UserStory:
         path = f"tests/fixtures/stories/{story_name}.yaml"
         with open(path) as f:
             data = yaml.safe_load(f)
         return UserStory(**data)
+
     return _load

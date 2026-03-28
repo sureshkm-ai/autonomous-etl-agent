@@ -1,4 +1,5 @@
 """Campaign performance optimisation — iPhone 17 campaign ETL."""
+
 from __future__ import annotations
 
 from etl_agent.core.logging import get_logger
@@ -21,7 +22,7 @@ def run_campaign_analysis(
       1. run_campaign_analysis(campaigns_path, orders_path, output_path)  — path-based
       2. run_campaign_analysis(spark, campaigns_df, output_path=…)        — DataFrame-based
     """
-    from pyspark.sql import SparkSession, DataFrame
+    from pyspark.sql import DataFrame, SparkSession
     from pyspark.sql import functions as F
 
     # ── Resolve calling convention ────────────────────────────────────────────
@@ -34,6 +35,7 @@ def run_campaign_analysis(
         orders = None
     else:
         from etl_agent.spark.session import get_or_create_spark
+
         spark = get_or_create_spark("CampaignOptimizer")
         campaigns = spark.read.parquet(spark_or_campaigns_path)
         orders_path_str = campaigns_df_or_orders_path
@@ -43,9 +45,7 @@ def run_campaign_analysis(
     logger.info("campaign_analysis_started", product_filter=product_filter)
 
     # Filter to target product family
-    campaigns_filtered = campaigns.filter(
-        F.col("product_family").contains(product_filter)
-    )
+    campaigns_filtered = campaigns.filter(F.col("product_family").contains(product_filter))
 
     # KPIs — computed directly from impressions/clicks/conversions/revenue/spend columns
     # (Fixture schema: campaign_id, campaign_name, product_family, impressions, clicks,
@@ -53,11 +53,13 @@ def run_campaign_analysis(
     if orders is not None:
         # Path-based: join with orders for revenue
         amount_col = "total_amount" if "total_amount" in orders.columns else "order_amount"
-        order_agg = orders.filter(
-            F.col("product_family").contains(product_filter)
-        ).groupBy("campaign_id").agg(
-            F.count("order_id").alias("order_count"),
-            F.sum(amount_col).alias("total_revenue"),
+        order_agg = (
+            orders.filter(F.col("product_family").contains(product_filter))
+            .groupBy("campaign_id")
+            .agg(
+                F.count("order_id").alias("order_count"),
+                F.sum(amount_col).alias("total_revenue"),
+            )
         )
         base = campaigns_filtered.join(order_agg, on="campaign_id", how="left").fillna(0)
         revenue_col = "total_revenue"
@@ -69,28 +71,29 @@ def run_campaign_analysis(
         cost_col = "spend"
 
     performance = (
-        base
-        .withColumn(
+        base.withColumn(
             "conversion_rate",
-            F.when(F.col("impressions") > 0,
-                   F.col("conversions") / F.col("impressions")).otherwise(0.0),
+            F.when(F.col("impressions") > 0, F.col("conversions") / F.col("impressions")).otherwise(
+                0.0
+            ),
         )
         .withColumn(
             "revenue_per_impression",
-            F.when(F.col("impressions") > 0,
-                   F.col(revenue_col) / F.col("impressions")).otherwise(0.0),
+            F.when(F.col("impressions") > 0, F.col(revenue_col) / F.col("impressions")).otherwise(
+                0.0
+            ),
         )
         .withColumn(
             "roi_pct",
-            F.when(F.col(cost_col) > 0,
-                   (F.col(revenue_col) - F.col(cost_col)) / F.col(cost_col) * 100
-                   ).otherwise(0.0),
+            F.when(
+                F.col(cost_col) > 0, (F.col(revenue_col) - F.col(cost_col)) / F.col(cost_col) * 100
+            ).otherwise(0.0),
         )
         .withColumn(
             "campaign_grade",
             F.when(F.col("roi_pct") >= 2000, "A")
             .when(F.col("roi_pct") >= 1000, "B")
-            .when(F.col("roi_pct") >= 0,    "C")
+            .when(F.col("roi_pct") >= 0, "C")
             .otherwise("D"),
         )
     )

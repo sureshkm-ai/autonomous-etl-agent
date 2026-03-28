@@ -1,4 +1,5 @@
 """Unit tests for the TestAgent."""
+
 from __future__ import annotations
 
 import textwrap
@@ -17,8 +18,8 @@ from etl_agent.core.models import (
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -76,7 +77,9 @@ def test_business_logic():
 
 # ─── Tests: Pytest Output Parsing ─────────────────────────────────────────────
 
+
 class TestPytestOutputParsing:
+    @pytest.mark.unit
     def test_parse_all_passed(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 
@@ -88,6 +91,7 @@ class TestPytestOutputParsing:
         assert result.num_passed == 4
         assert result.num_failed == 0
 
+    @pytest.mark.unit
     def test_parse_some_failed(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 
@@ -99,6 +103,7 @@ class TestPytestOutputParsing:
         assert result.num_passed == 3
         assert result.num_failed == 1
 
+    @pytest.mark.unit
     def test_parse_coverage_percentage(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 
@@ -108,6 +113,7 @@ class TestPytestOutputParsing:
 
         assert result.coverage_pct == 85.0
 
+    @pytest.mark.unit
     def test_parse_no_tests_collected(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 
@@ -118,6 +124,7 @@ class TestPytestOutputParsing:
         assert result.passed is False
         assert result.num_passed == 0
 
+    @pytest.mark.unit
     def test_parse_collection_error(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 
@@ -132,7 +139,9 @@ class TestPytestOutputParsing:
 
 # ─── Tests: TestAgent ─────────────────────────────────────────────────────────
 
+
 class TestTestAgent:
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_generates_and_runs_tests_successfully(
         self,
@@ -152,7 +161,9 @@ class TestTestAgent:
 
         with (
             patch.object(agent, "_llm") as mock_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result
+            ),
         ):
             mock_llm.ainvoke = AsyncMock(return_value=mock_test_code_response)
 
@@ -172,6 +183,7 @@ class TestTestAgent:
         assert "test_results" in result
         assert result["test_results"] is not None
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_failed_tests_trigger_retry_routing(
         self,
@@ -192,7 +204,9 @@ class TestTestAgent:
 
         with (
             patch.object(agent, "_llm") as mock_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result
+            ),
         ):
             mock_llm.ainvoke = AsyncMock(return_value=mock_test_code_response)
 
@@ -214,22 +228,22 @@ class TestTestAgent:
         route = route_after_tests(merged_state)
         assert route == "coding_agent"
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_max_retries_exceeded_routes_to_failure(
         self,
         sample_etl_spec: ETLSpec,
         sample_generated_code: str,
-        mock_test_code_response: MagicMock,
+        mock_test_code_response: MagicMock,  # noqa: ARG002
     ) -> None:
         from etl_agent.core.state import route_after_tests
-        from etl_agent.core.models import TestResult
 
         state: GraphState = {
             "etl_spec": sample_etl_spec,
             "generated_code": sample_generated_code,
             "run_id": uuid4(),
             "status": RunStatus.TESTING,
-            "retry_count": 2,   # max_retries = 2, so this is exhausted
+            "retry_count": 2,  # max_retries = 2, so this is exhausted
             "max_retries": 2,
             "test_results": TestResult(
                 passed=False,
@@ -245,6 +259,7 @@ class TestTestAgent:
         route = route_after_tests(state)
         assert route == "failure"
 
+    @pytest.mark.unit
     def test_test_agent_instantiation(self) -> None:
         from etl_agent.agents.test_agent import TestAgent
 

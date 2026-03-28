@@ -9,6 +9,7 @@ These tests verify the DeployAgent correctly:
 
 Run with: make test-integration
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -25,8 +26,8 @@ from etl_agent.core.models import (
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -77,6 +78,7 @@ def mock_s3(tmp_path):
 
 
 # ─── Tests: S3 Packaging and Upload ──────────────────────────────────────────
+
 
 class TestS3Packaging:
     @pytest.mark.asyncio
@@ -133,6 +135,7 @@ class TestS3Packaging:
 
 
 # ─── Tests: Airflow Trigger ───────────────────────────────────────────────────
+
 
 class TestAirflowTrigger:
     @pytest.mark.asyncio
@@ -229,7 +232,7 @@ class TestAirflowTrigger:
         agent = DeployAgent()
         captured_payload = {}
 
-        async def capture_post(*args, json=None, **kwargs):
+        async def capture_post(*_args, json=None, **_kwargs):
             nonlocal captured_payload
             captured_payload = json or {}
             return MagicMock(
@@ -255,12 +258,12 @@ class TestAirflowTrigger:
 
 # ─── Tests: Moto S3 (real LocalStack emulation) ───────────────────────────────
 
+
 class TestMotoS3Integration:
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_s3_upload_with_moto(self, mock_s3_boto: MagicMock, tmp_path) -> None:
+    async def test_s3_upload_with_moto(self, _mock_s3_boto: MagicMock, tmp_path) -> None:
         """Test S3 upload using moto mock (from conftest.py)."""
-        import boto3
         from etl_agent.tools.aws_tools import AWSTools
 
         # Create test file

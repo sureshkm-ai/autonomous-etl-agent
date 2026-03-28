@@ -1,4 +1,5 @@
 """Unit tests for the CodingAgent."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,16 +10,16 @@ import pytest
 from etl_agent.core.models import (
     DataSource,
     DataTarget,
+    ETLOperation,
     ETLSpec,
     OutputFormat,
     RunStatus,
     TransformationStep,
-    ETLOperation,
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -30,7 +31,7 @@ def sample_etl_spec() -> ETLSpec:
         transformations=[
             TransformationStep(
                 name="filter_valid",
-                operation=ETLOperation.filter,
+                operation=ETLOperation.FILTER,
                 description="Filter valid records",
                 params={"condition": "id IS NOT NULL"},
             )
@@ -73,7 +74,9 @@ Auto-generated ETL pipeline.
 
 # ─── Tests: Code Validation ───────────────────────────────────────────────────
 
+
 class TestCodeValidation:
+    @pytest.mark.unit
     def test_valid_python_syntax(self) -> None:
         from etl_agent.tools.code_validator import validate_python_syntax
 
@@ -82,6 +85,7 @@ class TestCodeValidation:
         assert is_valid is True
         assert error is None
 
+    @pytest.mark.unit
     def test_invalid_python_syntax(self) -> None:
         from etl_agent.tools.code_validator import validate_python_syntax
 
@@ -90,6 +94,7 @@ class TestCodeValidation:
         assert is_valid is False
         assert error is not None
 
+    @pytest.mark.unit
     def test_valid_pyspark_imports(self) -> None:
         from etl_agent.tools.code_validator import validate_pyspark_imports
 
@@ -102,6 +107,7 @@ class TestCodeValidation:
         assert is_valid is True
         assert missing == []
 
+    @pytest.mark.unit
     def test_missing_spark_session_import(self) -> None:
         from etl_agent.tools.code_validator import validate_pyspark_imports
 
@@ -110,12 +116,14 @@ class TestCodeValidation:
         assert is_valid is False
         assert len(missing) > 0
 
+    @pytest.mark.unit
     def test_empty_code_fails_validation(self) -> None:
         from etl_agent.tools.code_validator import validate_python_syntax
 
         is_valid, error = validate_python_syntax("")
         assert is_valid is False
 
+    @pytest.mark.unit
     def test_syntax_check_catches_indentation_error(self) -> None:
         from etl_agent.tools.code_validator import validate_python_syntax
 
@@ -126,7 +134,9 @@ class TestCodeValidation:
 
 # ─── Tests: CodingAgent ───────────────────────────────────────────────────────
 
+
 class TestCodingAgent:
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_generates_code_successfully(
         self, sample_etl_spec: ETLSpec, mock_good_code_response: MagicMock
@@ -155,6 +165,7 @@ class TestCodingAgent:
         assert "run_pipeline" in result["generated_code"]
         assert result["status"] == RunStatus.TESTING
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_retains_retry_context_on_retry(
         self, sample_etl_spec: ETLSpec, mock_good_code_response: MagicMock
@@ -184,16 +195,15 @@ class TestCodingAgent:
                 "awaiting_approval": False,
             }
 
-            result = await agent(state)
+            _result = await agent(state)
 
         # Verify the LLM was called with retry context
         call_args = mock_llm.ainvoke.call_args
         assert call_args is not None
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_coding_failure_increments_retry(
-        self, sample_etl_spec: ETLSpec
-    ) -> None:
+    async def test_coding_failure_increments_retry(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.agents.coding_agent import CodingAgent
 
         agent = CodingAgent()
@@ -216,18 +226,14 @@ class TestCodingAgent:
         assert result["status"] == RunStatus.FAILED
         assert result["error_message"] is not None
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_code_block_extraction(
-        self, sample_etl_spec: ETLSpec
-    ) -> None:
+    async def test_code_block_extraction(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.agents.coding_agent import CodingAgent
 
         agent = CodingAgent()
         multi_block_response = MagicMock(
-            content=(
-                "```python\ndef main():\n    pass\n```\n"
-                "```markdown\n# README\n```"
-            )
+            content=("```python\ndef main():\n    pass\n```\n```markdown\n# README\n```")
         )
 
         with patch.object(agent, "_llm") as mock_llm:

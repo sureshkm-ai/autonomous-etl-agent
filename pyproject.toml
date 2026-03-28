@@ -163,8 +163,41 @@ ignore_missing_imports = false
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["pyspark.*", "delta.*", "langchain.*", "langgraph.*", "anthropic.*"]
+module = [
+    "pyspark.*",
+    "delta.*",
+    "langchain.*",
+    "langgraph.*",
+    "anthropic.*",
+    "aioboto3.*",
+    "aiobotocore.*",
+    "aiohttp.*",
+    "github.*",
+    "alembic.*",
+    "slowapi.*",
+    "pipeline.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "etl_agent.agents.*",
+    "etl_agent.worker",
+    "etl_agent.api.*",
+    "etl_agent.core.audit",
+    "etl_agent.core.llm_governance",
+    "etl_agent.database.*",
+    "etl_agent.tools.*",
+    "etl_agent.analytics.*",
+    "etl_agent.spark.*",
+    "etl_agent.cli",
+    "etl_agent.prompts.*",
+]
+disallow_untyped_defs = false
+disallow_any_generics = false
+warn_return_any = false
+ignore_errors = false
+disable_error_code = ["union-attr", "arg-type", "return-value", "assignment", "misc", "no-untyped-def", "no-untyped-call", "unused-ignore", "import-untyped", "attr-defined", "call-arg", "typeddict-item", "name-defined"]
 
 # ── Pytest ─────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

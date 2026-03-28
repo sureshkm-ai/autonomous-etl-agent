@@ -28,8 +28,10 @@ Note on LocalStack:
   and skips the entire integration suite with a clear message if LocalStack
   is not available, so unit tests are never affected.
 """
+
 from __future__ import annotations
 
+import contextlib
 import os
 import urllib.request
 from collections.abc import Generator
@@ -37,7 +39,6 @@ from typing import Any
 
 import boto3
 import pytest
-
 
 # ── LocalStack config (mirrors tests/conftest.py) ─────────────────────────────
 _LOCALSTACK_ENDPOINT = os.environ.get("AWS_ENDPOINT_URL", "http://localhost:4566")
@@ -60,6 +61,7 @@ def _delete_bucket(client: Any, bucket: str) -> None:
 
 
 # ── LocalStack health check ────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _localstack_health() -> Generator[None, None, None]:
@@ -84,6 +86,7 @@ def _localstack_health() -> Generator[None, None, None]:
 
 # ── S3 fixture (LocalStack) ────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def mock_s3_boto() -> Generator[Any, None, None]:
     """LocalStack-backed S3 client with the 'etl-agent-artifacts' bucket.
@@ -103,10 +106,8 @@ def mock_s3_boto() -> Generator[Any, None, None]:
         endpoint_url=_LOCALSTACK_ENDPOINT,
         **_LOCALSTACK_CREDS,
     )
-    try:
+    with contextlib.suppress(client.exceptions.BucketAlreadyOwnedByYou):
         client.create_bucket(Bucket=bucket)
-    except client.exceptions.BucketAlreadyOwnedByYou:
-        pass  # already exists from a previous test run
 
     yield client
 
@@ -114,6 +115,7 @@ def mock_s3_boto() -> Generator[Any, None, None]:
 
 
 # ── API key + tracing fixture ──────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def patch_api_key() -> Generator[None, None, None]:

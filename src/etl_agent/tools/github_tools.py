@@ -1,8 +1,9 @@
 """GitHub API tool — wraps PyGitHub for branch, commit, issue, and PR operations."""
+
 import uuid
 
-from github import Github  # type: ignore[import]
-from github.ContentFile import ContentFile  # type: ignore[import]
+from github import Github  # type: ignore[import-untyped]
+from github.ContentFile import ContentFile  # type: ignore[import-untyped]
 
 from etl_agent.core.logging import get_logger
 

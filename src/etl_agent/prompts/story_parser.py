@@ -1,4 +1,5 @@
 """Prompt templates for the Story Parser Agent."""
+
 import yaml
 
 from etl_agent.core.models import UserStory
@@ -8,7 +9,7 @@ from etl_agent.prompts.examples.story_parser_examples import STORY_PARSER_EXAMPL
 def build_story_parser_prompt(story: UserStory) -> str:
     story_yaml = yaml.dump(story.model_dump(), default_flow_style=False)
     examples_text = "\n\n".join(
-        f"### Example {i+1}\nInput:\n```yaml\n{ex['input']}\n```\nOutput:\n```json\n{ex['output']}\n```"
+        f"### Example {i + 1}\nInput:\n```yaml\n{ex['input']}\n```\nOutput:\n```json\n{ex['output']}\n```"
         for i, ex in enumerate(STORY_PARSER_EXAMPLES)
     )
     return f"""You are an expert Data Engineering architect. Parse the following DevOps user story

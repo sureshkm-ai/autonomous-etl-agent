@@ -1,4 +1,5 @@
 """Unit tests for the StoryParser agent."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -7,9 +8,8 @@ from uuid import uuid4
 import pytest
 import yaml
 
-from etl_agent.core.models import ETLSpec, ETLOperation, RunStatus, UserStory
+from etl_agent.core.models import ETLOperation, ETLSpec, RunStatus, UserStory
 from etl_agent.core.state import GraphState
-
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -104,7 +104,9 @@ I've analysed the user story. Here is the ETL specification:
 
 # ─── Tests: YAML Parsing ──────────────────────────────────────────────────────
 
+
 class TestStoryYamlParsing:
+    @pytest.mark.unit
     def test_parse_valid_story(self, valid_user_story: UserStory) -> None:
         assert valid_user_story.id == "test_story"
         assert valid_user_story.title == "Test ETL Pipeline"
@@ -113,29 +115,35 @@ class TestStoryYamlParsing:
         assert valid_user_story.target.format == "delta"
         assert len(valid_user_story.transformations) == 1
 
+    @pytest.mark.unit
     def test_parse_minimal_story(self, minimal_user_story: UserStory) -> None:
         assert minimal_user_story.id == "minimal"
         assert minimal_user_story.transformations == []
         assert minimal_user_story.acceptance_criteria == []
 
+    @pytest.mark.unit
     def test_invalid_story_missing_source(self) -> None:
         data = yaml.safe_load(INVALID_STORY_YAML)
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             UserStory(**data)
 
+    @pytest.mark.unit
     def test_story_tags_default_to_empty_list(self, minimal_user_story: UserStory) -> None:
         assert minimal_user_story.tags == []
 
+    @pytest.mark.unit
     def test_transformation_step_has_required_fields(self, valid_user_story: UserStory) -> None:
         step = valid_user_story.transformations[0]
         assert step.name == "filter_active"
-        assert step.operation == ETLOperation.filter
+        assert step.operation == ETLOperation.FILTER
         assert step.description is not None
 
 
 # ─── Tests: StoryParserAgent ──────────────────────────────────────────────────
 
+
 class TestStoryParserAgent:
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_parse_returns_etl_spec(
         self, valid_user_story: UserStory, mock_llm_response: MagicMock
@@ -163,6 +171,7 @@ class TestStoryParserAgent:
         assert result["etl_spec"] is not None
         assert result["status"] == RunStatus.CODING
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_parse_extracts_json_from_response(
         self, valid_user_story: UserStory, mock_llm_response: MagicMock
@@ -189,6 +198,7 @@ class TestStoryParserAgent:
         assert isinstance(spec, ETLSpec)
         assert spec.pipeline_name == "test_story"
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_parse_failure_sets_error_status(self, valid_user_story: UserStory) -> None:
         from etl_agent.agents.story_parser import StoryParserAgent
@@ -213,6 +223,7 @@ class TestStoryParserAgent:
         assert result["status"] == RunStatus.FAILED
         assert result["error_message"] is not None
 
+    @pytest.mark.unit
     def test_story_parser_agent_instantiation(self) -> None:
         from etl_agent.agents.story_parser import StoryParserAgent
 

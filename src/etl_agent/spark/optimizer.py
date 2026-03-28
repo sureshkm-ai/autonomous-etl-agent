@@ -1,4 +1,5 @@
 """Spark query optimization utilities: broadcast hints, caching, and partition tuning."""
+
 from __future__ import annotations
 
 import math
@@ -204,7 +205,9 @@ def configure_dynamic_partition_pruning(spark: SparkSession) -> None:
     logger.info("dynamic_partition_pruning_enabled")
 
 
-def set_broadcast_threshold(spark: SparkSession, threshold_mb: int = _BROADCAST_THRESHOLD_MB) -> None:
+def set_broadcast_threshold(
+    spark: SparkSession, threshold_mb: int = _BROADCAST_THRESHOLD_MB
+) -> None:
     """
     Set the Spark auto-broadcast threshold.
 
@@ -217,7 +220,9 @@ def set_broadcast_threshold(spark: SparkSession, threshold_mb: int = _BROADCAST_
     logger.info("broadcast_threshold_set", threshold_mb=threshold_mb)
 
 
-def apply_all_optimizations(spark: SparkSession, broadcast_threshold_mb: int = _BROADCAST_THRESHOLD_MB) -> None:
+def apply_all_optimizations(
+    spark: SparkSession, broadcast_threshold_mb: int = _BROADCAST_THRESHOLD_MB
+) -> None:
     """
     Apply the full recommended set of Spark optimizations in one call.
 

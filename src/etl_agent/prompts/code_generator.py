@@ -1,5 +1,4 @@
 """Prompt templates for the Coding Agent."""
-from typing import Optional
 
 from etl_agent.core.models import ETLSpec, TestResult
 from etl_agent.prompts.examples.code_gen_examples import CODE_GEN_EXAMPLES
@@ -7,7 +6,7 @@ from etl_agent.prompts.examples.code_gen_examples import CODE_GEN_EXAMPLES
 
 def build_code_generator_prompt(
     etl_spec: ETLSpec,
-    previous_failure: Optional[TestResult] = None,
+    previous_failure: TestResult | None = None,
     retry_count: int = 0,
 ) -> str:
     retry_context = ""
@@ -15,7 +14,7 @@ def build_code_generator_prompt(
         retry_context = f"""
 ## Previous Test Failure (Attempt {retry_count})
 The previous code failed these tests:
-{chr(10).join(f'- {t}' for t in previous_failure.failed_test_names)}
+{chr(10).join(f"- {t}" for t in previous_failure.failed_test_names)}
 
 Test output (last 1000 chars):
 ```

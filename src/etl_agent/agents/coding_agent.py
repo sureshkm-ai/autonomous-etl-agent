@@ -5,6 +5,7 @@ Inherits ReactAgent:
   - Test-failure context from a previous graph retry is injected so the model
     can address specific assertion failures.
 """
+
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -57,7 +58,9 @@ class CodingAgent(ReactAgent):
             logger.error("coding_agent_call_failed", error=str(e))
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True
+    )
     async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
@@ -67,18 +70,20 @@ class CodingAgent(ReactAgent):
     @staticmethod
     def _extract_code(raw: str) -> str:
         import re
+
         m = re.search(r"```python\n(.*?)\n```", raw, re.DOTALL)
         return m.group(1) if m else raw
 
     @staticmethod
     def _validate_syntax(raw: str) -> tuple[bool, str]:
         from etl_agent.tools.code_validator import validate_python_syntax
+
         code = CodingAgent._extract_code(raw)
         ok, err = validate_python_syntax(code)
         return ok, err or ""
 
     @staticmethod
-    def _fix_syntax_message(raw: str, error: str, attempt: int) -> str:
+    def _fix_syntax_message(error: str) -> str:
         return (
             f"The Python code you generated has a syntax error:\n\n"
             f"```\n{error}\n```\n\n"
@@ -93,7 +98,9 @@ class CodingAgent(ReactAgent):
         retry_count = state["retry_count"]
         previous_failure = state.get("test_results")
 
-        logger.info("coding_agent_started", pipeline=etl_spec.pipeline_name, attempt=retry_count + 1)
+        logger.info(
+            "coding_agent_started", pipeline=etl_spec.pipeline_name, attempt=retry_count + 1
+        )
 
         try:
             prompt = build_code_generator_prompt(
@@ -139,7 +146,7 @@ def _default_readme(etl_spec: Any) -> str:
 {etl_spec.description}
 
 ## Operations
-{', '.join(op.value for op in etl_spec.operations)}
+{", ".join(op.value for op in etl_spec.operations)}
 
 ## Source
 `{etl_spec.source.path}`
