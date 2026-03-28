@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir uv==0.4.29
 WORKDIR /app
 
 # Copy dependency manifests first for better layer caching
-COPY pyproject.toml uv.lock* ./
+# README.md is required by Hatchling (declared as readme in pyproject.toml)
+COPY pyproject.toml uv.lock* README.md ./
 
 # Install production dependencies into a venv
 RUN uv venv .venv && \
