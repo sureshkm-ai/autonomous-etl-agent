@@ -1,18 +1,21 @@
 """Pydantic models for user stories, ETL specs, and results."""
-from enum import Enum
+
+from enum import StrEnum
 from typing import Any
+
 from pydantic import BaseModel, Field, field_validator
 
 
-class DataClassification(str, Enum):
+class DataClassification(StrEnum):
     """Dataset sensitivity classification — drives approval and retention policy."""
+
     public = "public"
     internal = "internal"
     confidential = "confidential"
     restricted = "restricted"
 
 
-class Operation(str, Enum):
+class Operation(StrEnum):
     FILTER = "filter"
     JOIN = "join"
     AGGREGATE = "aggregate"
@@ -25,7 +28,7 @@ class Operation(str, Enum):
     SORT = "sort"
 
 
-class ETLOperation(str, Enum):
+class ETLOperation(StrEnum):
     FILTER = "filter"
     JOIN = "join"
     AGGREGATE = "aggregate"
@@ -48,7 +51,7 @@ class ETLOperation(str, Enum):
     sort = "sort"
 
 
-class DeltaOperation(str, Enum):
+class DeltaOperation(StrEnum):
     CREATE = "create"
     OVERWRITE = "overwrite"
     MERGE = "merge"
@@ -56,7 +59,7 @@ class DeltaOperation(str, Enum):
     DELETE = "delete"
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     delta = "delta"
     parquet = "parquet"
     csv = "csv"
@@ -67,7 +70,7 @@ class OutputFormat(str, Enum):
     SCRIPT = "script"
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     PENDING = "PENDING"
     PARSING = "PARSING"
     CODING = "CODING"
@@ -108,6 +111,7 @@ class TransformationStep(BaseModel):
 
 class UserStory(BaseModel):
     """User story input with governance field constraints."""
+
     id: str = Field(..., min_length=1, max_length=128, pattern=r"^[\w\-\.]+$")
     title: str = Field(..., min_length=1, max_length=256)
     description: str = Field(..., min_length=1, max_length=2000)

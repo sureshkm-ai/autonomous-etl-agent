@@ -14,11 +14,10 @@ that enforce retention periods by classification:
   - confidential        → Glacier after 30 days, expire at 2 years
   - restricted          → Glacier after 7 days, expire at 7 years
 """
+
 from __future__ import annotations
 
 import hashlib
-import json
-from pathlib import Path
 from typing import Any
 
 from etl_agent.core.config import get_settings
@@ -30,6 +29,7 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _build_tags(
     data_classification: str,
@@ -58,6 +58,7 @@ def _compute_sha256(content: bytes) -> str:
 # ---------------------------------------------------------------------------
 # S3 upload
 # ---------------------------------------------------------------------------
+
 
 async def upload_artifact(
     *,
@@ -178,6 +179,7 @@ async def upload_pipeline_script(
 # Airflow DAG trigger
 # ---------------------------------------------------------------------------
 
+
 async def trigger_airflow_dag(
     *,
     dag_id: str,
@@ -209,13 +211,13 @@ async def trigger_airflow_dag(
 
     logger.info("airflow_trigger_start", dag_id=dag_id, run_id=run_id)
 
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.post(url, json=payload, auth=auth) as resp:
-            resp_json = await resp.json()
-            if resp.status not in (200, 201):
-                raise RuntimeError(
-                    f"Airflow trigger failed: HTTP {resp.status} — {resp_json}"
-                )
+    async with (
+        aiohttp.ClientSession(timeout=timeout) as session,
+        session.post(url, json=payload, auth=auth) as resp,
+    ):
+        resp_json = await resp.json()
+        if resp.status not in (200, 201):
+            raise RuntimeError(f"Airflow trigger failed: HTTP {resp.status} — {resp_json}")
 
     dag_run_id = resp_json.get("dag_run_id", run_id)
     logger.info("airflow_trigger_complete", dag_id=dag_id, dag_run_id=dag_run_id)

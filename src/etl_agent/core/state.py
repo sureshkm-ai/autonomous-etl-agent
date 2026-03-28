@@ -1,14 +1,15 @@
 """GraphState — shared state TypedDict for the LangGraph pipeline."""
+
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import TypedDict
 
 from etl_agent.core.models import ETLSpec, RunStatus, TestResult, UserStory
 
 if TYPE_CHECKING:
-    from etl_agent.core.llm_governance import RunTokenTracker
+    pass
 
 
 class GraphState(TypedDict, total=False):
@@ -16,6 +17,7 @@ class GraphState(TypedDict, total=False):
 
     All fields are optional (total=False) so each node can update a subset.
     """
+
     # Input
     story: UserStory
     run_id: str
@@ -25,23 +27,23 @@ class GraphState(TypedDict, total=False):
     # Pipeline progress
     status: RunStatus
     current_stage: str
-    error_message: Optional[str]
+    error_message: str | None
     retry_count: int
 
     # Agent outputs
-    etl_spec: Optional[ETLSpec]
-    generated_code: Optional[str]
-    test_results: Optional[TestResult]
+    etl_spec: ETLSpec | None
+    generated_code: str | None
+    test_results: TestResult | None
 
     # Release artifacts
-    github_pr_url: Optional[str]
-    github_issue_url: Optional[str]
-    s3_artifact_url: Optional[str]
-    commit_sha: Optional[str]
-    artifact_checksum: Optional[str]
+    github_pr_url: str | None
+    github_issue_url: str | None
+    s3_artifact_url: str | None
+    commit_sha: str | None
+    artifact_checksum: str | None
 
     # Governance
-    token_tracker: Optional[Any]        # RunTokenTracker (avoid circular import)
+    token_tracker: Any | None  # RunTokenTracker (avoid circular import)
     approval_required: bool
     approval_granted: bool
     data_classification: str

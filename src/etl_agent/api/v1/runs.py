@@ -1,8 +1,11 @@
 """Run status endpoints — reads from the persistent DB-backed run store."""
+
+from datetime import UTC
+
 from fastapi import APIRouter, HTTPException
 
-from etl_agent.core.logging import get_logger
 from etl_agent.core.audit import list_audit_events
+from etl_agent.core.logging import get_logger
 
 from .run_store import async_get_run, async_list_runs
 
@@ -73,8 +76,10 @@ async def approve_run(run_id: str, body: dict) -> dict:
       - actor      (str, required) — approver identity
       - rationale  (str, optional) — reason for approval
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     from etl_agent.core.audit import write_audit_event
+
     from .run_store import async_update_run
 
     run = await async_get_run(run_id)
@@ -92,7 +97,7 @@ async def approve_run(run_id: str, body: dict) -> dict:
         raise HTTPException(status_code=422, detail="'actor' field is required")
 
     rationale = body.get("rationale", "")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     await async_update_run(
         run_id,

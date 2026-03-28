@@ -6,6 +6,7 @@ Inherits ReactAgent:
 Non-blocking: failures are logged but the pipeline status is set to DONE
 so a deploy hiccup never fails an otherwise successful run.
 """
+
 from typing import Any
 
 from etl_agent.agents.base import ReactAgent

@@ -1,5 +1,7 @@
 """SQLAlchemy ORM models — governance-extended schema."""
+
 from datetime import datetime
+
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import declarative_base
 
@@ -65,6 +67,7 @@ class PipelineRunRecord(Base):
 
 class AuditEventRecord(Base):
     """Append-only governance event log — records are never modified after insertion."""
+
     __tablename__ = "audit_events"
     id = Column(String, primary_key=True)
     event_type = Column(String, nullable=False)

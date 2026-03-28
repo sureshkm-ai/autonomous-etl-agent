@@ -1,4 +1,5 @@
 """Unit tests for the CodingAgent."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,16 +10,16 @@ import pytest
 from etl_agent.core.models import (
     DataSource,
     DataTarget,
+    ETLOperation,
     ETLSpec,
     OutputFormat,
     RunStatus,
     TransformationStep,
-    ETLOperation,
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -72,6 +73,7 @@ Auto-generated ETL pipeline.
 
 
 # ─── Tests: Code Validation ───────────────────────────────────────────────────
+
 
 class TestCodeValidation:
     @pytest.mark.unit
@@ -131,6 +133,7 @@ class TestCodeValidation:
 
 
 # ─── Tests: CodingAgent ───────────────────────────────────────────────────────
+
 
 class TestCodingAgent:
     @pytest.mark.unit
@@ -192,7 +195,7 @@ class TestCodingAgent:
                 "awaiting_approval": False,
             }
 
-            result = await agent(state)
+            _result = await agent(state)
 
         # Verify the LLM was called with retry context
         call_args = mock_llm.ainvoke.call_args
@@ -200,9 +203,7 @@ class TestCodingAgent:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_coding_failure_increments_retry(
-        self, sample_etl_spec: ETLSpec
-    ) -> None:
+    async def test_coding_failure_increments_retry(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.agents.coding_agent import CodingAgent
 
         agent = CodingAgent()
@@ -227,17 +228,12 @@ class TestCodingAgent:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_code_block_extraction(
-        self, sample_etl_spec: ETLSpec
-    ) -> None:
+    async def test_code_block_extraction(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.agents.coding_agent import CodingAgent
 
         agent = CodingAgent()
         multi_block_response = MagicMock(
-            content=(
-                "```python\ndef main():\n    pass\n```\n"
-                "```markdown\n# README\n```"
-            )
+            content=("```python\ndef main():\n    pass\n```\n```markdown\n# README\n```")
         )
 
         with patch.object(agent, "_llm") as mock_llm:

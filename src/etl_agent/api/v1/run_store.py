@@ -4,6 +4,7 @@ All public functions are synchronous wrappers that spin up a one-shot event loop
 so they can be called from sync FastAPI route handlers AND from async background
 tasks without change of call-site.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -22,6 +23,7 @@ logger = get_logger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -33,6 +35,7 @@ def _run_async(coro):
         if loop.is_running():
             # We're already inside an async context — schedule as a task
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 future = pool.submit(asyncio.run, coro)
                 return future.result()
@@ -45,9 +48,11 @@ def _run_async(coro):
 # Internal async helpers (all DB I/O lives here)
 # ---------------------------------------------------------------------------
 
+
 async def _async_create_run(run_id: str, story_id: str, story_title: str) -> None:
-    from etl_agent.database.session import get_session_factory
     from etl_agent.database.models import PipelineRunRecord
+    from etl_agent.database.session import get_session_factory
+
     factory = get_session_factory()
     record = PipelineRunRecord(
         id=str(uuid4()),
@@ -67,8 +72,10 @@ async def _async_create_run(run_id: str, story_id: str, story_title: str) -> Non
 
 async def _async_update_run(run_id: str, **kwargs) -> None:
     from sqlalchemy import select
-    from etl_agent.database.session import get_session_factory
+
     from etl_agent.database.models import PipelineRunRecord
+    from etl_agent.database.session import get_session_factory
+
     factory = get_session_factory()
     try:
         async with factory() as session:
@@ -161,8 +168,10 @@ async def _async_update_run(run_id: str, **kwargs) -> None:
 
 async def _async_get_run(run_id: str) -> dict[str, Any] | None:
     from sqlalchemy import select
-    from etl_agent.database.session import get_session_factory
+
     from etl_agent.database.models import PipelineRunRecord
+    from etl_agent.database.session import get_session_factory
+
     factory = get_session_factory()
     try:
         async with factory() as session:
@@ -179,9 +188,11 @@ async def _async_get_run(run_id: str) -> dict[str, Any] | None:
 
 
 async def _async_list_runs(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
-    from sqlalchemy import select, desc
-    from etl_agent.database.session import get_session_factory
+    from sqlalchemy import desc, select
+
     from etl_agent.database.models import PipelineRunRecord
+    from etl_agent.database.session import get_session_factory
+
     factory = get_session_factory()
     try:
         async with factory() as session:
@@ -229,7 +240,9 @@ def _record_to_dict(r: Any) -> dict[str, Any]:
             "passed_tests": r.test_passed_count or 0,
             "total_tests": r.test_total or 0,
             "coverage_pct": r.test_coverage_pct or 0.0,
-        } if r.test_passed is not None else None,
+        }
+        if r.test_passed is not None
+        else None,
         "error_message": r.error_message,
         "retry_count": r.retry_count or 0,
         # Governance
@@ -257,6 +270,7 @@ def _record_to_dict(r: Any) -> dict[str, Any]:
 # Public synchronous API  (drop-in replacement for the old in-memory store)
 # ---------------------------------------------------------------------------
 
+
 def create_run(run_id: str, story_id: str, story_title: str) -> None:
     """Register a new pipeline run. Idempotent on repeated calls with same run_id."""
     _run_async(_async_create_run(run_id, story_id, story_title))
@@ -280,6 +294,7 @@ def list_runs(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Async variants (for use inside async route handlers / background tasks)
 # ---------------------------------------------------------------------------
+
 
 async def async_get_run(run_id: str) -> dict[str, Any] | None:
     return await _async_get_run(run_id)

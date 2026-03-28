@@ -6,6 +6,7 @@ Usage in an agent:
     tracker.record_step(model, input_tokens, output_tokens, agent_name, attempt, prompt_hash)
     tracker.check_budget()   # raises TokenBudgetExceeded if over limit
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -18,9 +19,9 @@ logger = get_logger(__name__)
 # Approximate cost per 1M tokens (input_rate, output_rate) in USD.
 # Update as Anthropic pricing changes.
 _COST_PER_MTK: dict[str, tuple[float, float]] = {
-    "claude-opus-4-6":           (15.00, 75.00),
-    "claude-sonnet-4-6":         (3.00,  15.00),
-    "claude-haiku-4-5-20251001": (0.80,   4.00),
+    "claude-opus-4-6": (15.00, 75.00),
+    "claude-sonnet-4-6": (3.00, 15.00),
+    "claude-haiku-4-5-20251001": (0.80, 4.00),
 }
 
 
@@ -68,15 +69,17 @@ class RunTokenTracker:
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
         self.total_cost_usd += cost
-        self._steps.append({
-            "agent": agent_name,
-            "attempt": attempt,
-            "model": model,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cost_usd": round(cost, 6),
-            "prompt_hash": prompt_hash,
-        })
+        self._steps.append(
+            {
+                "agent": agent_name,
+                "attempt": attempt,
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost_usd": round(cost, 6),
+                "prompt_hash": prompt_hash,
+            }
+        )
         logger.info(
             "llm_token_usage",
             run_id=self.run_id,

@@ -1,4 +1,5 @@
 """Unit tests for the StoryParser agent."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -7,9 +8,8 @@ from uuid import uuid4
 import pytest
 import yaml
 
-from etl_agent.core.models import ETLSpec, ETLOperation, RunStatus, UserStory
+from etl_agent.core.models import ETLOperation, ETLSpec, RunStatus, UserStory
 from etl_agent.core.state import GraphState
-
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -104,6 +104,7 @@ I've analysed the user story. Here is the ETL specification:
 
 # ─── Tests: YAML Parsing ──────────────────────────────────────────────────────
 
+
 class TestStoryYamlParsing:
     @pytest.mark.unit
     def test_parse_valid_story(self, valid_user_story: UserStory) -> None:
@@ -139,6 +140,7 @@ class TestStoryYamlParsing:
 
 
 # ─── Tests: StoryParserAgent ──────────────────────────────────────────────────
+
 
 class TestStoryParserAgent:
     @pytest.mark.unit

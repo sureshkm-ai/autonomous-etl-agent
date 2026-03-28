@@ -1,12 +1,11 @@
 """Prompt templates for the Test Agent."""
+
 from etl_agent.core.models import ETLSpec
 from etl_agent.prompts.examples.test_gen_examples import TEST_GEN_EXAMPLES
 
 
 def build_test_generator_prompt(etl_spec: ETLSpec, generated_code: str) -> str:
-    examples_text = "\n\n".join(
-        f"### Example\n```python\n{ex}\n```" for ex in TEST_GEN_EXAMPLES
-    )
+    examples_text = "\n\n".join(f"### Example\n```python\n{ex}\n```" for ex in TEST_GEN_EXAMPLES)
     ops_summary = [op.value for op in etl_spec.operations]
 
     # Surface just enough of the generated code for Claude to find function names.

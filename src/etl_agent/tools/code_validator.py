@@ -1,4 +1,5 @@
 """Code validation tools — AST syntax check and basic import validation."""
+
 import ast
 
 from etl_agent.core.logging import get_logger

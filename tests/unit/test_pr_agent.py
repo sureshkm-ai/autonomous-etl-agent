@@ -1,4 +1,5 @@
 """Unit tests for the PRAgent and GitHubTools."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -16,8 +17,8 @@ from etl_agent.core.models import (
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -72,6 +73,7 @@ def mock_github():
 
 
 # ─── Tests: GitHubTools ───────────────────────────────────────────────────────
+
 
 class TestGitHubTools:
     @pytest.mark.unit
@@ -133,6 +135,7 @@ class TestGitHubTools:
 
 # ─── Tests: PRAgent ───────────────────────────────────────────────────────────
 
+
 class TestPRAgent:
     @pytest.mark.unit
     @pytest.mark.asyncio
@@ -140,7 +143,7 @@ class TestPRAgent:
         self,
         sample_etl_spec: ETLSpec,
         sample_test_results: TestResult,
-        mock_github,
+        _mock_github,
     ) -> None:
         from etl_agent.agents.pr_agent import PRAgent
 

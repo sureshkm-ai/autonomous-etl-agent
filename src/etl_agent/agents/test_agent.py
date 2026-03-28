@@ -4,6 +4,7 @@ Inherits ReactAgent:
   - LLM loop fixes syntax errors in generated test code.
   - Tool loop retries subprocess execution on transient failures.
 """
+
 import subprocess
 import tempfile
 import textwrap
@@ -57,10 +58,17 @@ class TestAgent(ReactAgent):
         try:
             return await self.run(state)
         except Exception as e:
-            logger.error("test_agent_call_failed", error=str(e), run_id=state.get("run_id",""), story_id=state.get("story_id",""))
+            logger.error(
+                "test_agent_call_failed",
+                error=str(e),
+                run_id=state.get("run_id", ""),
+                story_id=state.get("story_id", ""),
+            )
             return {"status": RunStatus.FAILED, "error_message": str(e)}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True)
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30), reraise=True
+    )
     async def _call_llm(self, messages: list[dict]) -> str:
         if self._llm is None:
             self._llm = _LLMWrapper(self.settings)
@@ -70,6 +78,7 @@ class TestAgent(ReactAgent):
     @staticmethod
     def _extract_test_code(raw: str) -> str:
         import re
+
         m = re.search(r"```python\n(.*?)\n```", raw, re.DOTALL)
         if m:
             return m.group(1)
@@ -83,6 +92,7 @@ class TestAgent(ReactAgent):
     @staticmethod
     def _validate_test_syntax(raw: str) -> tuple[bool, str]:
         from etl_agent.tools.code_validator import validate_python_syntax
+
         code = TestAgent._extract_test_code(raw)
         ok, err = validate_python_syntax(code)
         return ok, err or ""
@@ -157,7 +167,9 @@ class TestAgent(ReactAgent):
             spark.stop()
     """)
 
-    def _run_tests(self, pipeline_code: str, test_code: str, pipeline_name: str = "pipeline") -> TestResult:
+    def _run_tests(
+        self, pipeline_code: str, test_code: str, pipeline_name: str = "pipeline"
+    ) -> TestResult:
         import os
         import sys
 
@@ -189,28 +201,47 @@ class TestAgent(ReactAgent):
                         env["JAVA_HOME"] = candidate
                         break
 
-            env.setdefault("JAVA_TOOL_OPTIONS", " ".join([
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
-                "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-                "--add-opens=java.base/java.io=ALL-UNNAMED",
-                "--add-opens=java.base/java.net=ALL-UNNAMED",
-                "--add-opens=java.base/java.nio=ALL-UNNAMED",
-                "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
-                "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
-                "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-                "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
-                "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
-                "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
-                "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED",
-            ]))
+            env.setdefault(
+                "JAVA_TOOL_OPTIONS",
+                " ".join(
+                    [
+                        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+                        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                        "--add-opens=java.base/java.io=ALL-UNNAMED",
+                        "--add-opens=java.base/java.net=ALL-UNNAMED",
+                        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                        "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+                        "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+                        "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED",
+                    ]
+                ),
+            )
 
             result = subprocess.run(
-                [sys.executable, "-m", "pytest", str(tmp / "test_pipeline.py"),
-                 "-v", "--tb=short", "--no-header", "-p", "no:cacheprovider",
-                 "--cov=pipeline", "--cov-report=term-missing"],
-                capture_output=True, text=True, timeout=300, cwd=tmpdir, env=env,
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    str(tmp / "test_pipeline.py"),
+                    "-v",
+                    "--tb=short",
+                    "--no-header",
+                    "-p",
+                    "no:cacheprovider",
+                    "--cov=pipeline",
+                    "--cov-report=term-missing",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=tmpdir,
+                env=env,
             )
 
             output = result.stdout + result.stderr
@@ -220,8 +251,12 @@ class TestAgent(ReactAgent):
     async def run(self, state: GraphState) -> dict[str, Any]:
         run_id = state.get("run_id", "")
         story_id = state.get("story_id", "")
-        logger.info("test_agent_started", pipeline=state["etl_spec"].pipeline_name,
-                    run_id=run_id, story_id=story_id)
+        logger.info(
+            "test_agent_started",
+            pipeline=state["etl_spec"].pipeline_name,
+            run_id=run_id,
+            story_id=story_id,
+        )
         try:
             # React LLM loop: fix syntax errors in generated test code
             base_prompt = build_test_generator_prompt(
@@ -269,10 +304,12 @@ class TestAgent(ReactAgent):
             full_prompt = base_prompt + pyspark_rules
 
             raw_response = await self.react_llm_loop(
-                initial_messages=[{
-                    "role": "user",
-                    "content": full_prompt,
-                }],
+                initial_messages=[
+                    {
+                        "role": "user",
+                        "content": full_prompt,
+                    }
+                ],
                 call_llm=self._call_llm,
                 validate=self._validate_test_syntax,
                 build_fix_message=self._fix_test_syntax_message,
@@ -311,9 +348,12 @@ class TestAgent(ReactAgent):
             logger.error("test_agent_failed", error=str(e), run_id=run_id, story_id=story_id)
             raise TestGenerationError(f"Test execution failed: {e}") from e
 
-    async def _run_tests_async(self, pipeline_code: str, test_code: str, pipeline_name: str) -> TestResult:
+    async def _run_tests_async(
+        self, pipeline_code: str, test_code: str, pipeline_name: str
+    ) -> TestResult:
         """Wrap the synchronous _run_tests in a coroutine for react_tool_loop."""
         import asyncio
+
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None, self._run_tests, pipeline_code, test_code, pipeline_name

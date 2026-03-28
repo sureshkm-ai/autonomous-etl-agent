@@ -12,39 +12,47 @@ class ETLAgentError(Exception):
 
 class StoryParseError(ETLAgentError):
     """Error parsing user story."""
+
     pass
 
 
 class CodeGenerationError(ETLAgentError):
     """Error generating code."""
+
     pass
 
 
 class CodeValidationError(ETLAgentError):
     """Error validating code."""
+
     pass
 
 
 class TestGenerationError(ETLAgentError):
     """Error generating or running tests."""
+
     pass
 
 
 class PRCreationError(ETLAgentError):
     """Error creating pull request."""
+
     pass
 
 
 class S3UploadError(ETLAgentError):
     """Error uploading to S3."""
+
     pass
 
 
 class ArtifactPackagingError(ETLAgentError):
     """Error packaging artifacts."""
+
     pass
 
 
 class AirflowTriggerError(ETLAgentError):
     """Error triggering Airflow DAG."""
+
     pass

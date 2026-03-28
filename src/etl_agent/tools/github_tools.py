@@ -1,4 +1,5 @@
 """GitHub API tool — wraps PyGitHub for branch, commit, issue, and PR operations."""
+
 import uuid
 
 from github import Github  # type: ignore[import]

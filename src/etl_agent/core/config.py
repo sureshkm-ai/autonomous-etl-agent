@@ -1,4 +1,5 @@
 """Application configuration via pydantic-settings."""
+
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,14 +23,14 @@ class Settings(BaseSettings):
     # ── AWS ───────────────────────────────────────────────────────────────────
     s3_bucket: str = ""
     aws_region: str = "us-east-1"
-    s3_region: str = "us-east-1"        # kept for backward-compat
+    s3_region: str = "us-east-1"  # kept for backward-compat
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
 
     # ── SQS (ECS Fargate mode — leave empty for local/EC2 BackgroundTasks) ───
-    sqs_queue_url: str = ""             # set to the pipeline queue URL in ECS
+    sqs_queue_url: str = ""  # set to the pipeline queue URL in ECS
     sqs_dlq_url: str = ""
-    sqs_visibility_timeout: int = 900   # must match Terraform visibility_timeout
+    sqs_visibility_timeout: int = 900  # must match Terraform visibility_timeout
 
     # ── Database ──────────────────────────────────────────────────────────────
     # Local dev  : sqlite+aiosqlite:///./etl_agent.db
@@ -39,9 +40,7 @@ class Settings(BaseSettings):
     # ── LLM governance ────────────────────────────────────────────────────────
     max_tokens_per_run: int = 500_000
     budget_approval_threshold_pct: float = 75.0
-    approved_models: str = (
-        "claude-opus-4-6,claude-sonnet-4-6,claude-haiku-4-5-20251001"
-    )
+    approved_models: str = "claude-opus-4-6,claude-sonnet-4-6,claude-haiku-4-5-20251001"
     fallback_model: str = "claude-sonnet-4-6"
 
     # ── Pipeline behaviour ────────────────────────────────────────────────────

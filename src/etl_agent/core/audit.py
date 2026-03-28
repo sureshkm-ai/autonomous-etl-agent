@@ -4,8 +4,9 @@ Every call to write_audit_event() persists one immutable record to the
 AuditEventRecord table. Failures are caught and logged; they never propagate
 to the caller so that a DB hiccup cannot interrupt the pipeline.
 """
+
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from etl_agent.core.logging import get_logger
@@ -43,10 +44,10 @@ async def write_audit_event(
         logger.warning("invalid_audit_event_type", event_type=event_type)
         return
 
-    from etl_agent.database.session import get_session_factory
     from etl_agent.database.models import AuditEventRecord
+    from etl_agent.database.session import get_session_factory
 
-    ts = datetime.now(timezone.utc)
+    ts = datetime.now(UTC)
     record_id = f"{event_type}_{run_id or 'none'}_{ts.timestamp():.0f}"
 
     record = AuditEventRecord(
@@ -87,8 +88,9 @@ async def write_audit_event(
 async def list_audit_events(run_id: str) -> list[dict[str, Any]]:
     """Return all audit events for a run, ordered by timestamp ascending."""
     from sqlalchemy import select
-    from etl_agent.database.session import get_session_factory
+
     from etl_agent.database.models import AuditEventRecord
+    from etl_agent.database.session import get_session_factory
 
     try:
         factory = get_session_factory()

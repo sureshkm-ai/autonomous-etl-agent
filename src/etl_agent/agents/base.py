@@ -17,19 +17,20 @@ Usage in a concrete agent::
             )
             return {"result": response}
 """
+
 from __future__ import annotations
 
 import abc
 from typing import Any
 
 from etl_agent.core.config import get_settings
-from etl_agent.core.logging import get_logger
 from etl_agent.core.llm_governance import (
     RunTokenTracker,
     TokenBudgetExceeded,
     compute_prompt_hash,
     estimate_cost_usd,
 )
+from etl_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -160,7 +161,7 @@ class ReactAgent(abc.ABC):
             )
             try:
                 tracker.check_budget()
-            except TokenBudgetExceeded as exc:
+            except TokenBudgetExceeded:
                 logger.error(
                     "token_budget_exceeded",
                     agent=effective_agent,

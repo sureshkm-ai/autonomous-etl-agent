@@ -17,17 +17,19 @@ Graph topology
 Each node updates a subset of GraphState. stream_pipeline() yields state
 snapshots after every node and calls the optional on_update callback.
 """
+
 from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from etl_agent.core.config import get_settings
+from etl_agent.core.llm_governance import RunTokenTracker
 from etl_agent.core.logging import get_logger
 from etl_agent.core.models import DataClassification, RunStatus, UserStory
 from etl_agent.core.state import GraphState
-from etl_agent.core.llm_governance import RunTokenTracker
 
 logger = get_logger(__name__)
 
@@ -44,9 +46,11 @@ _PROCEED = "proceed"
 # Node wrappers
 # ---------------------------------------------------------------------------
 
+
 async def _node_parse(state: GraphState) -> dict[str, Any]:
     """Parse story → ETLSpec."""
     from etl_agent.agents.story_parser import StoryParserAgent
+
     agent = StoryParserAgent()
     result = await agent.run(state)
     return {**result, "status": RunStatus.CODING, "current_stage": "parse_story"}
@@ -55,6 +59,7 @@ async def _node_parse(state: GraphState) -> dict[str, Any]:
 async def _node_code(state: GraphState) -> dict[str, Any]:
     """Generate PySpark pipeline code from ETLSpec."""
     from etl_agent.agents.coding_agent import CodingAgent
+
     agent = CodingAgent()
     result = await agent.run(state)
     return {**result, "status": RunStatus.TESTING, "current_stage": "generate_code"}
@@ -63,6 +68,7 @@ async def _node_code(state: GraphState) -> dict[str, Any]:
 async def _node_test(state: GraphState) -> dict[str, Any]:
     """Generate and run pytest tests against the generated code."""
     from etl_agent.agents.test_agent import TestAgent
+
     agent = TestAgent()
     result = await agent.run(state)
     return {**result, "current_stage": "run_tests"}
@@ -87,9 +93,7 @@ async def _node_approval_gate(state: GraphState) -> dict[str, Any]:
 
     budget_flag = False
     if tracker is not None:
-        budget_flag = tracker.needs_approval(
-            threshold_pct=settings.budget_approval_threshold_pct
-        )
+        budget_flag = tracker.needs_approval(threshold_pct=settings.budget_approval_threshold_pct)
 
     approval_required = high_sensitivity or budget_flag
 
@@ -118,6 +122,7 @@ async def _node_approval_gate(state: GraphState) -> dict[str, Any]:
 async def _node_pr(state: GraphState) -> dict[str, Any]:
     """Create GitHub PR and issue for the generated pipeline."""
     from etl_agent.agents.pr_agent import PRAgent
+
     agent = PRAgent()
     result = await agent.run(state)
     return {**result, "current_stage": "create_pr"}
@@ -126,6 +131,7 @@ async def _node_pr(state: GraphState) -> dict[str, Any]:
 async def _node_deploy(state: GraphState) -> dict[str, Any]:
     """Upload artifact to S3 and trigger Airflow DAG."""
     from etl_agent.agents.deploy_agent import DeployAgent
+
     agent = DeployAgent()
     result = await agent.run(state)
     return {**result, "status": RunStatus.DONE, "current_stage": "deploy"}
@@ -134,6 +140,7 @@ async def _node_deploy(state: GraphState) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Routing function for approval gate
 # ---------------------------------------------------------------------------
+
 
 def _route_after_approval(state: GraphState) -> str:
     """Return edge label based on whether approval is required."""
@@ -155,14 +162,13 @@ async def _node_dry_run_complete(state: GraphState) -> dict[str, Any]:
 # Graph builder
 # ---------------------------------------------------------------------------
 
+
 def _build_graph():
     """Construct and compile the LangGraph StateGraph."""
     try:
-        from langgraph.graph import StateGraph, END
+        from langgraph.graph import END, StateGraph
     except ImportError as e:
-        raise ImportError(
-            "langgraph is required. Install with: pip install langgraph"
-        ) from e
+        raise ImportError("langgraph is required. Install with: pip install langgraph") from e
 
     builder = StateGraph(GraphState)
 
@@ -177,6 +183,7 @@ def _build_graph():
     # Linear edges
     builder.set_entry_point("parse_story")
     builder.add_edge("parse_story", "generate_code")
+
     # dry_run short-circuit: skip tests, PR, deploy
     def _route_after_code(state: GraphState) -> str:
         return "dry_run_end" if state.get("dry_run") else "run_tests"

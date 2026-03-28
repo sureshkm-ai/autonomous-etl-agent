@@ -1,4 +1,5 @@
 """Unit tests for the TestAgent."""
+
 from __future__ import annotations
 
 import textwrap
@@ -17,8 +18,8 @@ from etl_agent.core.models import (
 )
 from etl_agent.core.state import GraphState
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_etl_spec() -> ETLSpec:
@@ -75,6 +76,7 @@ def test_business_logic():
 
 
 # ─── Tests: Pytest Output Parsing ─────────────────────────────────────────────
+
 
 class TestPytestOutputParsing:
     @pytest.mark.unit
@@ -137,6 +139,7 @@ class TestPytestOutputParsing:
 
 # ─── Tests: TestAgent ─────────────────────────────────────────────────────────
 
+
 class TestTestAgent:
     @pytest.mark.unit
     @pytest.mark.asyncio
@@ -158,7 +161,9 @@ class TestTestAgent:
 
         with (
             patch.object(agent, "_llm") as mock_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result
+            ),
         ):
             mock_llm.ainvoke = AsyncMock(return_value=mock_test_code_response)
 
@@ -199,7 +204,9 @@ class TestTestAgent:
 
         with (
             patch.object(agent, "_llm") as mock_llm,
-            patch("etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result),
+            patch(
+                "etl_agent.agents.test_agent.subprocess.run", return_value=mock_subprocess_result
+            ),
         ):
             mock_llm.ainvoke = AsyncMock(return_value=mock_test_code_response)
 
@@ -227,17 +234,16 @@ class TestTestAgent:
         self,
         sample_etl_spec: ETLSpec,
         sample_generated_code: str,
-        mock_test_code_response: MagicMock,
+        _mock_test_code_response: MagicMock,
     ) -> None:
         from etl_agent.core.state import route_after_tests
-        from etl_agent.core.models import TestResult
 
         state: GraphState = {
             "etl_spec": sample_etl_spec,
             "generated_code": sample_generated_code,
             "run_id": uuid4(),
             "status": RunStatus.TESTING,
-            "retry_count": 2,   # max_retries = 2, so this is exhausted
+            "retry_count": 2,  # max_retries = 2, so this is exhausted
             "max_retries": 2,
             "test_results": TestResult(
                 passed=False,
