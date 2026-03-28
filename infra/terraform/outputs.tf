@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # =============================================================================
 # outputs.tf — legacy S3 / ECR outputs kept for backward compatibility.
 #
@@ -19,6 +20,33 @@ output "s3_processed_bucket" {
 output "s3_artifacts_bucket" {
   description = "Name of the ETL artefacts S3 bucket"
   value       = aws_s3_bucket.artifacts.bucket
+=======
+output "app_public_ip" {
+  description = "Public IP of the ETL Agent app server"
+  value       = aws_eip.etl_agent.public_ip
+}
+
+output "app_public_dns" {
+  description = "Public DNS of the ETL Agent app server"
+  value       = aws_eip.etl_agent.public_dns
+}
+
+output "api_url" {
+  description = "ETL Agent API base URL"
+  value       = "http://${aws_eip.etl_agent.public_dns}:8000"
+}
+
+output "s3_raw_bucket" {
+  value = aws_s3_bucket.raw.bucket
+}
+
+output "s3_processed_bucket" {
+  value = aws_s3_bucket.processed.bucket
+}
+
+output "s3_artifacts_bucket" {
+  value = aws_s3_bucket.artifacts.bucket
+>>>>>>> main
 }
 
 output "ecr_repository_url" {

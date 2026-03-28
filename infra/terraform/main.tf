@@ -68,5 +68,12 @@ resource "aws_s3_bucket_public_access_block" "artifacts" {
 }
 
 # ── SSH Key Pair ──────────────────────────────────────────────────────────────
+<<<<<<< HEAD
 # Removed: ECS Fargate does not use EC2 key pairs.
 # The original resource has been preserved in ec2_bkp.tf.bak.
+=======
+resource "aws_key_pair" "etl_agent" {
+  key_name   = "${var.project_name}-key"
+  public_key = var.ssh_public_key
+}
+>>>>>>> main

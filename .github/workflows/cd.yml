@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 name: CD — Build, Push & Deploy to ECS Fargate
+=======
+name: CD
+>>>>>>> main
 
 on:
   push:
     branches: [main]
 
+<<<<<<< HEAD
 env:
   AWS_REGION:   ${{ secrets.AWS_REGION }}
   ECR_REPO:     ${{ secrets.ECR_REPOSITORY }}   # e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/etl-agent-app
@@ -21,20 +26,33 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.uri }}
 
+=======
+jobs:
+  deploy:
+    name: Build, Push & Deploy
+    runs-on: ubuntu-latest
+>>>>>>> main
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+<<<<<<< HEAD
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
+=======
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+>>>>>>> main
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+<<<<<<< HEAD
       - name: Build, tag, and push image
         id: image
         env:
@@ -187,3 +205,33 @@ jobs:
           curl --fail --silent --max-time 10 \
             "https://${ALB_DNS}/api/v1/health" | jq .
           echo "✅ Smoke test passed"
+=======
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infra/Dockerfile -t $ECR_REGISTRY/etl-agent-app:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/etl-agent-app:$IMAGE_TAG
+          echo "IMAGE=$ECR_REGISTRY/etl-agent-app:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/etl-agent
+            git pull origin main
+            echo "${{ env.IMAGE }}" > .current_image
+            docker pull ${{ env.IMAGE }}
+            docker compose -f infra/docker-compose.yml up -d
+            docker exec etl-agent-app-1 alembic -c src/etl_agent/database/migrations/alembic.ini upgrade head
+
+      - name: Smoke test deployed endpoint
+        run: |
+          sleep 30
+          curl -f http://${{ secrets.EC2_HOST }}:8000/api/v1/health || exit 1
+          echo "✅ Deployment smoke test passed"
+>>>>>>> main
