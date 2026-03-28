@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     # ── Derived properties ───────────────────────────────────────────────────
 
     @property
+    def github_target_repo(self) -> str:
+        """Combined owner/repo string expected by GitHubTools."""
+        return f"{self.github_owner}/{self.github_repo}"
+
+    @property
     def approved_model_list(self) -> list[str]:
         return [m.strip() for m in self.approved_models.split(",") if m.strip()]
 
