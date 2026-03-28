@@ -21,6 +21,7 @@ Usage in a concrete agent::
 from __future__ import annotations
 
 import abc
+import inspect
 from typing import Any
 
 from etl_agent.core.config import get_settings
@@ -280,7 +281,10 @@ class ReactAgent(abc.ABC):
         last_exc: Exception | None = None
         for attempt in range(1, max_attempts + 1):
             try:
-                return await action()
+                result = action()
+                if inspect.isawaitable(result):
+                    result = await result
+                return result
             except errors_to_catch as exc:
                 last_exc = exc
                 logger.warning(
