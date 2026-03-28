@@ -71,6 +71,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
+      - name: Verify image URI from build job
+        run: |
+          IMAGE="${{ needs.build-and-push.outputs.image }}"
+          if [ -z "${IMAGE}" ]; then
+            echo "❌ build-and-push job did not produce an image URI."
+            echo "   Check that the Build & Push Image job completed without errors"
+            echo "   and that the ECR_REPOSITORY secret is set correctly."
+            exit 1
+          fi
+          echo "✅ Image URI: ${IMAGE}"
+
       - name: Render API task definition with built image
         id: render-migration-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -164,6 +175,17 @@ jobs:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Verify image URI from build job
+        run: |
+          IMAGE="${{ needs.build-and-push.outputs.image }}"
+          if [ -z "${IMAGE}" ]; then
+            echo "❌ build-and-push job did not produce an image URI."
+            echo "   Check that the Build & Push Image job completed without errors"
+            echo "   and that the ECR_REPOSITORY secret is set correctly."
+            exit 1
+          fi
+          echo "✅ Image URI: ${IMAGE}"
 
       # ── API service ─────────────────────────────────────────────────────
       - name: Render API task definition
