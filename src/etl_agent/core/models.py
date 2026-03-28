@@ -181,7 +181,6 @@ class TestResult(BaseModel):
 
 
 class RunResult(BaseModel):
-    from uuid import UUID
     run_id: Any
     story_id: str
     status: RunStatus

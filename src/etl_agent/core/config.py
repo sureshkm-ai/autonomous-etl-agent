@@ -1,7 +1,7 @@
 """Application configuration via pydantic-settings."""
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -78,9 +78,10 @@ class Settings(BaseSettings):
         """True when SQS is configured — enables the ECS Fargate async mode."""
         return bool(self.sqs_queue_url.strip())
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
 
 @lru_cache
