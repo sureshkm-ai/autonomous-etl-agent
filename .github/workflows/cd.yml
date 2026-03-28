@@ -71,17 +71,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Run Alembic migrations via ECS run-task
+      - name: Register latest API task definition
+        id: register-task-def
         run: |
-          TASK_DEF=$(aws ecs describe-task-definition \
-            --task-definition etl-agent-api \
+          # Always register from the repo file so migrations use DATABASE_URL
+          # (not an older revision that may reference a different secret key)
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://infra/ecs-task-def-api.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
+          echo "Registered task definition: ${TASK_DEF_ARN}"
+          echo "task_def_arn=${TASK_DEF_ARN}" >> "$GITHUB_OUTPUT"
 
+      - name: Run Alembic migrations via ECS run-task
+        run: |
           # Grab private subnet and security group from SSM or hardcode via secrets
           TASK_ARN=$(aws ecs run-task \
             --cluster "${{ env.ECS_CLUSTER }}" \
-            --task-definition "$TASK_DEF" \
+            --task-definition "${{ steps.register-task-def.outputs.task_def_arn }}" \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.PRIVATE_SUBNET_IDS }}],securityGroups=[${{ secrets.ECS_SECURITY_GROUP_ID }}],assignPublicIp=DISABLED}" \
             --overrides '{"containerOverrides":[{"name":"api","command":["alembic","-c","src/etl_agent/database/migrations/alembic.ini","upgrade","head"]}]}' \
@@ -119,7 +126,7 @@ jobs:
           if [ -n "$LOG_STREAM" ]; then
             echo "📋 Migration logs:"
             aws logs get-log-events \
-              --log-group-name /ecs/etl-agent-api \
+              --log-group-name /ecs/etl-agent/api \
               --log-stream-name "$LOG_STREAM" \
               --query 'events[].message' --output text || true
           else
