@@ -39,16 +39,6 @@ class ETLOperation(StrEnum):
     RENAME = "rename"
     CAST = "cast"
     SORT = "sort"
-    filter = "filter"
-    join = "join"
-    aggregate = "aggregate"
-    dedupe = "dedupe"
-    enrich = "enrich"
-    upsert = "upsert"
-    fill_null = "fill_null"
-    rename = "rename"
-    cast = "cast"
-    sort = "sort"
 
 
 class DeltaOperation(StrEnum):
