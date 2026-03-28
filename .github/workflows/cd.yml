@@ -221,8 +221,8 @@ jobs:
             --names "etl-agent-alb" \
             --query 'LoadBalancers[0].DNSName' \
             --output text)
-          echo "ALB: https://${ALB_DNS}"
+          echo "ALB: http://${ALB_DNS}"
           sleep 15
           curl --fail --silent --max-time 10 \
-            "https://${ALB_DNS}/api/v1/health" | jq .
+            "http://${ALB_DNS}/api/v1/health" | jq .
           echo "✅ Smoke test passed"
