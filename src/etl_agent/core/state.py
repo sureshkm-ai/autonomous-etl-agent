@@ -47,3 +47,44 @@ class GraphState(TypedDict, total=False):
     approval_required: bool
     approval_granted: bool
     data_classification: str
+
+    # Pipeline control
+    max_retries: int
+    messages: list[Any]
+    awaiting_approval: bool
+
+
+# ---------------------------------------------------------------------------
+# Routing helpers — used as LangGraph conditional edge functions and in tests
+# ---------------------------------------------------------------------------
+
+
+def route_after_tests(state: GraphState) -> str:
+    """Route after the test agent runs.
+
+    - Tests passed               → ``pr_agent``
+    - Tests failed, retries left → ``coding_agent`` (retry loop)
+    - Tests failed, retries gone → ``failure``
+    """
+    test_results = state.get("test_results")
+    retry_count = int(state.get("retry_count") or 0)
+    max_retries = int(state.get("max_retries") or 2)
+
+    if test_results is not None and test_results.passed:
+        return "pr_agent"
+
+    if retry_count < max_retries:
+        return "coding_agent"
+
+    return "failure"
+
+
+def route_after_pr(state: GraphState) -> str:
+    """Route after the PR agent runs.
+
+    - PR URL present → ``deploy_agent``
+    - No PR URL      → ``failure``
+    """
+    if state.get("github_pr_url"):
+        return "deploy_agent"
+    return "failure"
