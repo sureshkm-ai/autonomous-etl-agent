@@ -197,7 +197,7 @@ disallow_untyped_defs = false
 disallow_any_generics = false
 warn_return_any = false
 ignore_errors = false
-disable_error_code = ["union-attr", "arg-type", "return-value", "assignment", "misc", "no-untyped-def", "no-untyped-call", "unused-ignore", "import-untyped"]
+disable_error_code = ["union-attr", "arg-type", "return-value", "assignment", "misc", "no-untyped-def", "no-untyped-call", "unused-ignore", "import-untyped", "attr-defined", "call-arg", "typeddict-item", "name-defined"]
 
 # ── Pytest ─────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

@@ -18,12 +18,82 @@ that enforce retention periods by classification:
 from __future__ import annotations
 
 import hashlib
+import os
+import subprocess
+import tempfile
 from typing import Any
+
+import boto3
 
 from etl_agent.core.config import get_settings
 from etl_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# AWSTools — convenience class used by DeployAgent
+# ---------------------------------------------------------------------------
+
+
+class AWSTools:
+    """Wraps boto3 S3 client for artifact packaging and upload."""
+
+    def __init__(
+        self,
+        aws_access_key_id: str = "",
+        aws_secret_access_key: str = "",
+        region: str = "us-east-1",
+        endpoint_url: str = "",
+    ) -> None:
+        kwargs: dict[str, Any] = {"region_name": region}
+        if aws_access_key_id:
+            kwargs["aws_access_key_id"] = aws_access_key_id
+        if aws_secret_access_key:
+            kwargs["aws_secret_access_key"] = aws_secret_access_key
+        if endpoint_url:
+            kwargs["endpoint_url"] = endpoint_url
+        self._s3 = boto3.client("s3", **kwargs)
+
+    def package_whl(self, pipeline_name: str, pipeline_code: str) -> str:
+        """Write pipeline code to a temp dir, build a .whl, return its local path."""
+        tmp = tempfile.mkdtemp(prefix="etl_whl_")
+        src_dir = os.path.join(tmp, pipeline_name)
+        os.makedirs(src_dir, exist_ok=True)
+
+        # Write the pipeline module
+        with open(os.path.join(src_dir, "__init__.py"), "w") as f:
+            f.write(pipeline_code)
+
+        # Minimal setup.py for bdist_wheel
+        setup_py = (
+            f"from setuptools import setup, find_packages\n"
+            f"setup(name='{pipeline_name}', version='1.0.0', packages=find_packages())\n"
+        )
+        with open(os.path.join(tmp, "setup.py"), "w") as f:
+            f.write(setup_py)
+
+        dist_dir = os.path.join(tmp, "dist")
+        subprocess.run(
+            ["python", "setup.py", "bdist_wheel", "--dist-dir", dist_dir],
+            cwd=tmp,
+            check=True,
+            capture_output=True,
+        )
+
+        wheels = [f for f in os.listdir(dist_dir) if f.endswith(".whl")]
+        if not wheels:
+            raise RuntimeError(f"No .whl produced for pipeline {pipeline_name}")
+        whl_path = os.path.join(dist_dir, wheels[0])
+        logger.info("whl_packaged", pipeline=pipeline_name, path=whl_path)
+        return whl_path
+
+    def upload_to_s3(self, local_path: str, bucket: str, key: str) -> str:
+        """Upload a local file to S3 and return the s3:// URI."""
+        self._s3.upload_file(local_path, bucket, key)
+        s3_uri = f"s3://{bucket}/{key}"
+        logger.info("s3_upload_complete", uri=s3_uri)
+        return s3_uri
 
 
 # ---------------------------------------------------------------------------

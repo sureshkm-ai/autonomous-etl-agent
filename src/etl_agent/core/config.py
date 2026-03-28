@@ -48,8 +48,18 @@ class Settings(BaseSettings):
     require_human_approval: bool = False
     airflow_enabled: bool = False
     airflow_url: str = ""
+    airflow_api_url: str = ""  # alias used by deploy_agent (falls back to airflow_url)
+    airflow_dag_id: str = "etl_pipeline"
     airflow_username: str = "airflow"
     airflow_password: str = "airflow"
+
+    # ── API server ────────────────────────────────────────────────────────────
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+
+    # ── AWS extended ──────────────────────────────────────────────────────────
+    aws_endpoint_url: str = ""  # LocalStack / custom endpoint; empty = real AWS
+    aws_s3_artifacts_bucket: str = ""  # dedicated artifacts bucket (falls back to s3_bucket)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
     debug: bool = False

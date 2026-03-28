@@ -32,7 +32,10 @@ class GraphState(TypedDict, total=False):
 
     # Agent outputs
     etl_spec: ETLSpec | None
+    user_story: UserStory | None  # alias populated by story_parser (same as "story")
     generated_code: str | None
+    generated_tests: str | None
+    generated_readme: str | None
     test_results: TestResult | None
 
     # Release artifacts

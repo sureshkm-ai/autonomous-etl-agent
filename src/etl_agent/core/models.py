@@ -86,7 +86,7 @@ class RunStatus(StrEnum):
 class DataSource(BaseModel):
     path: str
     format: str = "parquet"
-    schema_hint: dict | None = None
+    schema_hint: dict[str, Any] | None = None
     mode: str = "overwrite"
 
 
@@ -96,7 +96,7 @@ DataTarget = DataSource
 class Transformation(BaseModel):
     operation: Operation
     description: str = ""
-    config: dict = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
 
 
 class TransformationStep(BaseModel):
@@ -196,7 +196,7 @@ class RunResult(BaseModel):
     airflow_dag_run_id: str | None = None
     retry_count: int = 0
     error_message: str | None = None
-    token_usage: dict | None = None
+    token_usage: dict[str, Any] | None = None
     cost_usd: float | None = None
     data_classification: DataClassification = DataClassification.internal
     approval_required: bool = False

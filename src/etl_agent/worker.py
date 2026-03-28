@@ -34,9 +34,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 import boto3
+import structlog
 from botocore.exceptions import ClientError
 
-logger = logging.getLogger("etl_agent.worker")
+logger = structlog.get_logger("etl_agent.worker")
 
 
 # ─── Configuration ────────────────────────────────────────────────────────────
