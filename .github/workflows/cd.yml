@@ -71,13 +71,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Register latest API task definition
+      - name: Render API task definition with built image
+        id: render-migration-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: infra/ecs-task-def-api.json
+          container-name:  api
+          image:           ${{ needs.build-and-push.outputs.image }}
+
+      - name: Register rendered API task definition
         id: register-task-def
         run: |
-          # Always register from the repo file so migrations use DATABASE_URL
-          # (not an older revision that may reference a different secret key)
+          # Register the rendered file (PLACEHOLDER replaced with real image URI)
+          # so migrations use DATABASE_URL, not an older revision's secret keys
           TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://infra/ecs-task-def-api.json \
+            --cli-input-json file://${{ steps.render-migration-task-def.outputs.task-definition }} \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "Registered task definition: ${TASK_DEF_ARN}"
