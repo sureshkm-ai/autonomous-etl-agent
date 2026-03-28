@@ -1,10 +1,12 @@
 """Custom exception classes."""
 
+from typing import Any
+
 
 class ETLAgentError(Exception):
     """Base exception for ETL Agent errors."""
 
-    def __init__(self, message: str, context: dict | None = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         self.message = message
         self.context = context or {}
         super().__init__(message)

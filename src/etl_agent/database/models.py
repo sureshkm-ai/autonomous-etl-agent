@@ -3,9 +3,9 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeMeta, declarative_base
 
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 
 class UserStoryRecord(Base):

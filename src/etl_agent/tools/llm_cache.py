@@ -15,17 +15,17 @@ def configure_llm_cache(
     In prod (use_redis=True): uses RedisCache for shared distributed caching.
     """
     try:
-        from langchain.globals import set_llm_cache  # type: ignore[import]
+        from langchain.globals import set_llm_cache  # type: ignore[import-untyped]
 
         if use_redis:
-            import redis as redis_client  # type: ignore[import]
-            from langchain_community.cache import RedisCache  # type: ignore[import]
+            import redis as redis_client
+            from langchain_community.cache import RedisCache  # type: ignore[import-untyped]
 
             r = redis_client.from_url(redis_url)
             set_llm_cache(RedisCache(redis_=r))
             logger.info("llm_cache_configured", backend="redis", url=redis_url)
         else:
-            from langchain_community.cache import SQLiteCache  # type: ignore[import]
+            from langchain_community.cache import SQLiteCache  # type: ignore[import-untyped]
 
             set_llm_cache(SQLiteCache(database_path=".langchain_cache.db"))
             logger.info("llm_cache_configured", backend="sqlite")

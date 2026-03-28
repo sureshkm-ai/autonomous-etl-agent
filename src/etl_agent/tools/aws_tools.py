@@ -86,7 +86,7 @@ async def upload_artifact(
     -------
     dict with keys: s3_uri, checksum, bucket, key, data_classification
     """
-    import aioboto3  # type: ignore[import]
+    import aioboto3  # type: ignore[import-untyped]
 
     settings = get_settings()
     bucket = settings.s3_bucket
