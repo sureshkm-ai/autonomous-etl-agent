@@ -125,7 +125,7 @@ class UserStory(BaseModel):
 
     @field_validator("acceptance_criteria", mode="before")
     @classmethod
-    def validate_criteria(cls, v: list) -> list:
+    def validate_criteria(cls, v: list[Any]) -> list[Any]:
         for item in v:
             if len(str(item)) > 500:
                 raise ValueError("Each acceptance criterion must be 500 characters or fewer.")
@@ -133,7 +133,7 @@ class UserStory(BaseModel):
 
     @field_validator("tags", mode="before")
     @classmethod
-    def validate_tags(cls, v: list) -> list:
+    def validate_tags(cls, v: list[Any]) -> list[Any]:
         for tag in v:
             if len(str(tag)) > 50:
                 raise ValueError("Each tag must be 50 characters or fewer.")

@@ -2,10 +2,12 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import DeclarativeMeta, declarative_base
+from typing import Any
 
-Base: DeclarativeMeta = declarative_base()
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
+from sqlalchemy.orm import declarative_base
+
+Base: Any = declarative_base()
 
 
 class UserStoryRecord(Base):
