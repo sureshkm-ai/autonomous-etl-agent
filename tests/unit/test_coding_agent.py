@@ -31,7 +31,7 @@ def sample_etl_spec() -> ETLSpec:
         transformations=[
             TransformationStep(
                 name="filter_valid",
-                operation=ETLOperation.filter,
+                operation=ETLOperation.FILTER,
                 description="Filter valid records",
                 params={"condition": "id IS NOT NULL"},
             )

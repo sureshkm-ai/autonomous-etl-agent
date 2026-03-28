@@ -135,7 +135,7 @@ class TestStoryYamlParsing:
     def test_transformation_step_has_required_fields(self, valid_user_story: UserStory) -> None:
         step = valid_user_story.transformations[0]
         assert step.name == "filter_active"
-        assert step.operation == ETLOperation.filter
+        assert step.operation == ETLOperation.FILTER
         assert step.description is not None
 
 
