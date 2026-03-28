@@ -95,17 +95,24 @@ jobs:
             --cluster "${{ env.ECS_CLUSTER }}" \
             --tasks "$TASK_ARN"
 
-          # Small delay to ensure task metadata is fully propagated
-          sleep 2
+          # Retry loop — exit code can lag behind tasks-stopped by a few seconds
+          EXIT_CODE="unknown"
+          for i in {1..6}; do
+            TASK_STATUS=$(aws ecs describe-tasks \
+              --cluster "${{ env.ECS_CLUSTER }}" \
+              --tasks "$TASK_ARN")
+            EXIT_CODE=$(echo "$TASK_STATUS" | jq -r '.tasks[0].containers[0].exitCode // "unknown"')
+            [ "$EXIT_CODE" != "unknown" ] && break
+            echo "Exit code not yet available, retrying ($i/6)..."
+            sleep 5
+          done
 
-          # Check exit code — use jq null-coalescing to handle missing values
-          TASK_STATUS=$(aws ecs describe-tasks \
-            --cluster "${{ env.ECS_CLUSTER }}" \
-            --tasks "$TASK_ARN")
-
-          EXIT_CODE=$(echo "$TASK_STATUS" | jq -r '.tasks[0].containers[0].exitCode // "unknown"')
-          LAST_STATUS=$(echo "$TASK_STATUS" | jq -r '.tasks[0].lastStatus')
+          LAST_STATUS=$(echo  "$TASK_STATUS" | jq -r '.tasks[0].lastStatus')
+          STOP_CODE=$(echo    "$TASK_STATUS" | jq -r '.tasks[0].stopCode // "N/A"')
+          STOP_REASON=$(echo  "$TASK_STATUS" | jq -r '.tasks[0].stoppedReason // "N/A"')
           echo "Task status: $LAST_STATUS | Exit code: $EXIT_CODE"
+          echo "Stop code: $STOP_CODE"
+          echo "Stop reason: $STOP_REASON"
 
           # Print CloudWatch logs for debugging regardless of outcome
           LOG_STREAM=$(echo "$TASK_STATUS" | jq -r '.tasks[0].containers[0].logStreamName // ""')
@@ -115,10 +122,12 @@ jobs:
               --log-group-name /ecs/etl-agent-api \
               --log-stream-name "$LOG_STREAM" \
               --query 'events[].message' --output text || true
+          else
+            echo "⚠️  No log stream found — task likely failed to start (stopCode: $STOP_CODE)"
           fi
 
           if [ "$EXIT_CODE" = "unknown" ] || [ "$EXIT_CODE" != "0" ]; then
-            echo "❌ Migration failed with exit code ${EXIT_CODE}"
+            echo "❌ Migration failed — exit: ${EXIT_CODE}, reason: ${STOP_REASON}"
             exit 1
           fi
           echo "✅ Migration completed successfully"
