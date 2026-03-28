@@ -30,8 +30,11 @@ async def _persist_user_story(story: UserStory) -> None:
     """Write the UserStory to the database. Non-fatal on error."""
     try:
         from uuid import uuid4 as _uuid4
-        from etl_agent.database.session import get_session_factory
+
+        from sqlalchemy import select
+
         from etl_agent.database.models import UserStoryRecord
+        from etl_agent.database.session import get_session_factory
 
         factory = get_session_factory()
         record = UserStoryRecord(
@@ -50,8 +53,8 @@ async def _persist_user_story(story: UserStory) -> None:
             submitted_at=datetime.now(UTC),
         )
         async with factory() as session:
-            from sqlalchemy import select
             from etl_agent.database.models import UserStoryRecord as _USR
+
             existing = await session.execute(
                 select(_USR).where(_USR.story_id == story.id)
             )

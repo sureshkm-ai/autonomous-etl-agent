@@ -210,8 +210,8 @@ class TestFullPipelineRun:
         mock_commit_message_response,
     ) -> None:
         """Test that the pipeline retries when tests fail on first attempt."""
-        from etl_agent.core.models import RunStatus
         from etl_agent.agents.orchestrator import run_pipeline
+        from etl_agent.core.models import RunStatus
 
         # First call fails, second passes
         failing_result = MagicMock(

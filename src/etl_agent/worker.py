@@ -97,10 +97,10 @@ async def _process_message(sqs, message: dict[str, Any]) -> bool:
     Returns True if the run completed (success or business failure),
     False if a system error occurred that should not delete the message.
     """
-    from etl_agent.core.models import UserStory
-    from etl_agent.core.audit import write_audit_event
-    from etl_agent.api.v1.run_store import async_update_run
     from etl_agent.agents.orchestrator import stream_pipeline
+    from etl_agent.api.v1.run_store import async_update_run
+    from etl_agent.core.audit import write_audit_event
+    from etl_agent.core.models import UserStory
 
     receipt_handle = message["ReceiptHandle"]
     body: dict[str, Any] = {}

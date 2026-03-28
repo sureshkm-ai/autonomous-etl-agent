@@ -123,7 +123,7 @@ class TestStoryYamlParsing:
     @pytest.mark.unit
     def test_invalid_story_missing_source(self) -> None:
         data = yaml.safe_load(INVALID_STORY_YAML)
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             UserStory(**data)
 
     @pytest.mark.unit

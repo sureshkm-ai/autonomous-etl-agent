@@ -4,9 +4,9 @@ Every call to write_audit_event() persists one immutable record to the
 AuditEventRecord table. Failures are caught and logged; they never propagate
 to the caller so that a DB hiccup cannot interrupt the pipeline.
 """
+import json
 from datetime import datetime, timezone
 from typing import Any
-import json
 
 from etl_agent.core.logging import get_logger
 
