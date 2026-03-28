@@ -78,7 +78,7 @@ class CodingAgent(ReactAgent):
         return ok, err or ""
 
     @staticmethod
-    def _fix_syntax_message(raw: str, error: str, attempt: int) -> str:
+    def _fix_syntax_message(error: str) -> str:
         return (
             f"The Python code you generated has a syntax error:\n\n"
             f"```\n{error}\n```\n\n"

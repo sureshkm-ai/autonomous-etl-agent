@@ -159,10 +159,10 @@ def _build_graph():
     """Construct and compile the LangGraph StateGraph."""
     try:
         from langgraph.graph import StateGraph, END
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "langgraph is required. Install with: pip install langgraph"
-        )
+        ) from e
 
     builder = StateGraph(GraphState)
 

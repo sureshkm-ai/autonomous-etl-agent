@@ -7,8 +7,9 @@ tasks without change of call-site.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -22,7 +23,7 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _run_async(coro):
@@ -54,7 +55,7 @@ async def _async_create_run(run_id: str, story_id: str, story_title: str) -> Non
         story_id=story_id,
         story_title=story_title,
         status="PENDING",
-        submitted_at=datetime.now(timezone.utc),
+        submitted_at=datetime.now(UTC),
     )
     try:
         async with factory() as session:
@@ -92,7 +93,7 @@ async def _async_update_run(run_id: str, **kwargs) -> None:
                         try:
                             record.completed_at = datetime.fromisoformat(value)
                         except ValueError:
-                            record.completed_at = datetime.now(timezone.utc)
+                            record.completed_at = datetime.now(UTC)
                     else:
                         record.completed_at = value
                 elif key == "started_at":
@@ -100,7 +101,7 @@ async def _async_update_run(run_id: str, **kwargs) -> None:
                         try:
                             record.started_at = datetime.fromisoformat(value)
                         except ValueError:
-                            record.started_at = datetime.now(timezone.utc)
+                            record.started_at = datetime.now(UTC)
                     else:
                         record.started_at = value
                 elif key == "github_pr_url":
@@ -201,17 +202,13 @@ def _record_to_dict(r: Any) -> dict[str, Any]:
     """Convert an ORM PipelineRunRecord to a JSON-serialisable dict."""
     token_steps = []
     if r.token_steps_json:
-        try:
+        with contextlib.suppress(Exception):
             token_steps = json.loads(r.token_steps_json)
-        except Exception:
-            pass
 
     lineage = {}
     if r.lineage_snapshot_json:
-        try:
+        with contextlib.suppress(Exception):
             lineage = json.loads(r.lineage_snapshot_json)
-        except Exception:
-            pass
 
     return {
         "run_id": r.run_id,

@@ -28,7 +28,7 @@ import logging
 import os
 import signal
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import boto3
@@ -136,7 +136,7 @@ async def _process_message(sqs, message: dict[str, Any]) -> bool:
     logger.info("worker_run_start", run_id=run_id, story_id=story.id,
                 data_classification=story.data_classification.value)
 
-    await async_update_run(run_id, status="PARSING", started_at=datetime.now(timezone.utc))
+    await async_update_run(run_id, status="PARSING", started_at=datetime.now(UTC))
     await write_audit_event("PARSING_STARTED", run_id=run_id, story_id=story.id,
                              actor="worker", trigger_source="sqs",
                              from_status="PENDING", to_status="PARSING")
@@ -187,7 +187,7 @@ async def _process_message(sqs, message: dict[str, Any]) -> bool:
         await async_update_run(
             run_id,
             status=status_str,
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
             github_pr_url=final_state.get("github_pr_url"),
             s3_artifact_url=final_state.get("s3_artifact_url"),
             error_message=final_state.get("error_message"),
@@ -207,7 +207,7 @@ async def _process_message(sqs, message: dict[str, Any]) -> bool:
     except Exception as exc:
         logger.error("worker_pipeline_exception", run_id=run_id, error=str(exc), exc_info=True)
         await async_update_run(run_id, status="FAILED", error_message=str(exc),
-                               completed_at=datetime.now(timezone.utc).isoformat())
+                               completed_at=datetime.now(UTC).isoformat())
         await write_audit_event("RUN_FAILED", run_id=run_id, story_id=story.id,
                                  actor="worker", trigger_source="sqs",
                                  payload={"error": str(exc)})

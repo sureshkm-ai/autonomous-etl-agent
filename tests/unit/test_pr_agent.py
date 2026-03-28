@@ -74,6 +74,7 @@ def mock_github():
 # ─── Tests: GitHubTools ───────────────────────────────────────────────────────
 
 class TestGitHubTools:
+    @pytest.mark.unit
     def test_create_issue_returns_url(self, mock_github) -> None:
         from etl_agent.tools.github_tools import GitHubTools
 
@@ -88,6 +89,7 @@ class TestGitHubTools:
         assert "github.com" in issue_url
         assert "/issues/" in issue_url
 
+    @pytest.mark.unit
     def test_create_branch_from_main(self, mock_github) -> None:
         from etl_agent.tools.github_tools import GitHubTools
 
@@ -98,6 +100,7 @@ class TestGitHubTools:
         assert branch_name is not None
         assert "rfm" in branch_name.lower() or "feature" in branch_name.lower()
 
+    @pytest.mark.unit
     def test_create_pull_request_returns_url(self, mock_github) -> None:
         from etl_agent.tools.github_tools import GitHubTools
 
@@ -113,6 +116,7 @@ class TestGitHubTools:
         assert "github.com" in pr_url
         assert "/pull/" in pr_url
 
+    @pytest.mark.unit
     def test_commit_files_creates_new_file(self, mock_github) -> None:
         from etl_agent.tools.github_tools import GitHubTools
 
@@ -130,6 +134,7 @@ class TestGitHubTools:
 # ─── Tests: PRAgent ───────────────────────────────────────────────────────────
 
 class TestPRAgent:
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_pr_agent_creates_issue_and_pr(
         self,
@@ -176,6 +181,7 @@ class TestPRAgent:
         assert result.get("github_issue_url") is not None
         assert result["status"] == RunStatus.DEPLOYING
 
+    @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_pr_agent_failure_sets_error_status(
         self,
@@ -207,6 +213,7 @@ class TestPRAgent:
 
         assert result["status"] == RunStatus.FAILED
 
+    @pytest.mark.unit
     def test_route_after_pr_with_url(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.core.state import route_after_pr
 
@@ -222,6 +229,7 @@ class TestPRAgent:
         }
         assert route_after_pr(state) == "deploy_agent"
 
+    @pytest.mark.unit
     def test_route_after_pr_without_url_routes_to_failure(self, sample_etl_spec: ETLSpec) -> None:
         from etl_agent.core.state import route_after_pr
 

@@ -73,7 +73,7 @@ class PRAgent(ReactAgent):
         return True, ""
 
     @staticmethod
-    def _fix_commit_msg(raw: str, error: str, attempt: int) -> str:
+    def _fix_commit_msg(error: str) -> str:
         return (
             f"The commit message you wrote has an issue: {error}\n\n"
             "Please write a concise commit message in the format:\n"

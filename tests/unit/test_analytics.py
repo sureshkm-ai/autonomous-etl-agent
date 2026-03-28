@@ -156,6 +156,7 @@ def campaigns_df(spark):
 # ─── Tests: RFM Analysis ─────────────────────────────────────────────────────
 
 class TestRFMAnalysis:
+    @pytest.mark.unit
     def test_rfm_output_has_all_customers(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis
 
@@ -165,6 +166,7 @@ class TestRFMAnalysis:
         result = spark.read.format("delta").load(output_path)
         assert result.count() == orders_df.select("customer_id").distinct().count()
 
+    @pytest.mark.unit
     def test_rfm_output_has_segment_column(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis
 
@@ -174,6 +176,7 @@ class TestRFMAnalysis:
         result = spark.read.format("delta").load(output_path)
         assert "rfm_segment" in result.columns
 
+    @pytest.mark.unit
     def test_rfm_no_null_segments(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis
         from pyspark.sql import functions as F
@@ -185,6 +188,7 @@ class TestRFMAnalysis:
         null_count = result.filter(F.col("rfm_segment").isNull()).count()
         assert null_count == 0
 
+    @pytest.mark.unit
     def test_rfm_valid_segment_values(self, spark, orders_df, tmp_path) -> None:
         from etl_agent.analytics.rfm_analysis import run_rfm_analysis, VALID_SEGMENTS
 
@@ -199,6 +203,7 @@ class TestRFMAnalysis:
 # ─── Tests: Geo Analytics ─────────────────────────────────────────────────────
 
 class TestGeoAnalytics:
+    @pytest.mark.unit
     def test_geo_output_row_count(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.geo_analytics import run_geo_analysis
 
@@ -208,6 +213,7 @@ class TestGeoAnalytics:
         result = spark.read.format("delta").load(output_path)
         assert result.count() > 0
 
+    @pytest.mark.unit
     def test_geo_output_has_required_columns(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.geo_analytics import run_geo_analysis
 
@@ -218,6 +224,7 @@ class TestGeoAnalytics:
         required_cols = {"country", "total_revenue", "unique_customers"}
         assert required_cols.issubset(set(result.columns))
 
+    @pytest.mark.unit
     def test_geo_total_revenue_non_negative(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.geo_analytics import run_geo_analysis
         from pyspark.sql import functions as F
@@ -233,6 +240,7 @@ class TestGeoAnalytics:
 # ─── Tests: Campaign Optimizer ────────────────────────────────────────────────
 
 class TestCampaignOptimizer:
+    @pytest.mark.unit
     def test_campaign_filters_iphone17(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -244,6 +252,7 @@ class TestCampaignOptimizer:
         for row in result.collect():
             assert "iPhone 17" in row.product_family
 
+    @pytest.mark.unit
     def test_campaign_has_kpi_columns(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -254,6 +263,7 @@ class TestCampaignOptimizer:
         required_kpis = {"conversion_rate", "revenue_per_impression", "roi_pct", "campaign_grade"}
         assert required_kpis.issubset(set(result.columns))
 
+    @pytest.mark.unit
     def test_campaign_grades_are_valid(self, spark, campaigns_df, tmp_path) -> None:
         from etl_agent.analytics.campaign_optimizer import run_campaign_analysis
 
@@ -269,6 +279,7 @@ class TestCampaignOptimizer:
 # ─── Tests: Customer Intent ───────────────────────────────────────────────────
 
 class TestCustomerIntent:
+    @pytest.mark.unit
     def test_intent_output_has_all_customers(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.customer_intent import run_intent_scoring
 
@@ -278,6 +289,7 @@ class TestCustomerIntent:
         result = spark.read.format("delta").load(output_path)
         assert result.count() > 0
 
+    @pytest.mark.unit
     def test_intent_score_is_between_0_and_100(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.customer_intent import run_intent_scoring
         from pyspark.sql import functions as F
@@ -291,6 +303,7 @@ class TestCustomerIntent:
         ).count()
         assert out_of_range == 0
 
+    @pytest.mark.unit
     def test_intent_segments_are_valid(self, spark, orders_df, customers_df, tmp_path) -> None:
         from etl_agent.analytics.customer_intent import run_intent_scoring, VALID_INTENT_SEGMENTS
 

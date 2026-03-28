@@ -88,7 +88,7 @@ class TestAgent(ReactAgent):
         return ok, err or ""
 
     @staticmethod
-    def _fix_test_syntax_message(raw: str, error: str, attempt: int) -> str:
+    def _fix_test_syntax_message(error: str) -> str:
         return (
             f"The pytest test code you generated has a syntax error:\n\n"
             f"```\n{error}\n```\n\n"

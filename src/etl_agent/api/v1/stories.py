@@ -7,7 +7,7 @@ Execution mode is selected automatically:
                           behaviour, zero config needed for development).
 """
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import boto3
@@ -47,7 +47,7 @@ async def _persist_user_story(story: UserStory) -> None:
             data_classification=story.data_classification.value,
             tags=json.dumps(story.tags),
             raw_json=story.model_dump_json(),
-            submitted_at=datetime.now(timezone.utc),
+            submitted_at=datetime.now(UTC),
         )
         async with factory() as session:
             from sqlalchemy import select
@@ -227,7 +227,7 @@ async def _run_pipeline_background(
         update_run(
             run_id,
             status=status_str,
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
             github_pr_url=final_state.get("github_pr_url"),
             s3_artifact_url=final_state.get("s3_artifact_url"),
             error_message=final_state.get("error_message"),
@@ -240,7 +240,7 @@ async def _run_pipeline_background(
 
     except Exception as e:
         update_run(run_id, status="FAILED", error_message=str(e),
-                   completed_at=datetime.now(timezone.utc).isoformat())
+                   completed_at=datetime.now(UTC).isoformat())
         await write_audit_event("RUN_FAILED", run_id=run_id, story_id=story.id,
                                  actor="system", trigger_source="system",
                                  to_status="FAILED", payload={"error": str(e)})

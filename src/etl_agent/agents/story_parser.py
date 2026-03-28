@@ -78,7 +78,7 @@ class StoryParserAgent(ReactAgent):
             return False, str(exc)
 
     @staticmethod
-    def _fix_message(raw: str, error: str, attempt: int) -> str:
+    def _fix_message(error: str) -> str:
         return (
             f"Your previous response could not be parsed as a valid ETLSpec JSON.\n\n"
             f"Error: {error}\n\n"

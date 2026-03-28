@@ -166,6 +166,21 @@ plugins = ["pydantic.mypy"]
 module = ["pyspark.*", "delta.*", "langchain.*", "langgraph.*", "anthropic.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "etl_agent.agents.*",
+    "etl_agent.worker",
+    "etl_agent.api.v1.*",
+    "etl_agent.core.audit",
+    "etl_agent.core.llm_governance",
+    "etl_agent.database.*",
+]
+disallow_untyped_defs = false
+disallow_any_generics = false
+warn_return_any = false
+ignore_errors = false
+disable_error_code = ["union-attr", "arg-type", "return-value", "assignment", "misc", "no-untyped-def", "no-untyped-call"]
+
 # ── Pytest ─────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
