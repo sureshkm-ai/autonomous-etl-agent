@@ -1,7 +1,6 @@
 """SQLAlchemy ORM models — governance-extended schema."""
 
 from datetime import datetime
-
 from typing import Any
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
