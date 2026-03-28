@@ -234,7 +234,7 @@ class TestTestAgent:
         self,
         sample_etl_spec: ETLSpec,
         sample_generated_code: str,
-        _mock_test_code_response: MagicMock,
+        mock_test_code_response: MagicMock,  # noqa: ARG002
     ) -> None:
         from etl_agent.core.state import route_after_tests
 

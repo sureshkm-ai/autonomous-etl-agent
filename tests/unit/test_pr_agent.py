@@ -143,7 +143,7 @@ class TestPRAgent:
         self,
         sample_etl_spec: ETLSpec,
         sample_test_results: TestResult,
-        _mock_github,
+        mock_github,  # noqa: ARG002
     ) -> None:
         from etl_agent.agents.pr_agent import PRAgent
 
