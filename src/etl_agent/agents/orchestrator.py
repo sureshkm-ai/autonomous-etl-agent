@@ -192,8 +192,9 @@ def _build_graph():
     builder.add_conditional_edges(
         "generate_code",
         _route_after_code,
-        {"dry_run_end": END, "run_tests": "run_tests"},
+        {"dry_run_end": "dry_run_end", "run_tests": "run_tests"},
     )
+    builder.add_edge("dry_run_end", END)
     builder.add_edge("run_tests", "approval_gate")
 
     # Conditional: approval gate may halt at AWAITING_APPROVAL

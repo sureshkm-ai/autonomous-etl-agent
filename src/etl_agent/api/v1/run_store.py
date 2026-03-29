@@ -75,105 +75,117 @@ async def _async_create_run(run_id: str, story_id: str, story_title: str) -> Non
         logger.error("run_store_create_failed", run_id=run_id, error=str(exc))
 
 
+def _build_update_values(kwargs: dict) -> dict:
+    """Translate public kwarg names into DB column name → value pairs.
+
+    Handles timezone stripping for DateTime columns and flattening of nested
+    dicts (test_results).  Returns an empty dict if nothing is actionable.
+    """
+    values: dict = {}
+    for key, value in kwargs.items():
+        if value is None:
+            continue
+        if key == "status":
+            values["status"] = str(value)
+        elif key == "current_stage":
+            values["current_stage"] = str(value)
+        elif key == "completed_at":
+            if isinstance(value, str):
+                try:
+                    values["completed_at"] = datetime.fromisoformat(value).replace(tzinfo=None)
+                except ValueError:
+                    values["completed_at"] = _utcnow()
+            elif isinstance(value, datetime):
+                values["completed_at"] = value.replace(tzinfo=None)
+            else:
+                values["completed_at"] = value
+        elif key == "started_at":
+            if isinstance(value, str):
+                try:
+                    values["started_at"] = datetime.fromisoformat(value).replace(tzinfo=None)
+                except ValueError:
+                    values["started_at"] = _utcnow()
+            elif isinstance(value, datetime):
+                values["started_at"] = value.replace(tzinfo=None)
+            else:
+                values["started_at"] = value
+        elif key == "github_pr_url":
+            values["github_pr_url"] = value
+        elif key == "github_issue_url":
+            values["github_issue_url"] = value
+        elif key == "s3_artifact_url":
+            values["s3_artifact_url"] = value
+        elif key == "error_message":
+            values["error_message"] = value
+        elif key == "test_results" and isinstance(value, dict):
+            values["test_passed"] = value.get("passed")
+            values["test_passed_count"] = value.get("passed_tests", 0)
+            values["test_total"] = value.get("total_tests", 0)
+            values["test_coverage_pct"] = value.get("coverage_pct", 0.0)
+        elif key == "retry_count":
+            values["retry_count"] = int(value)
+        elif key == "approval_required":
+            values["approval_required"] = bool(value)
+        elif key == "approver_actor":
+            values["approver_actor"] = value
+        elif key == "approval_timestamp":
+            if isinstance(value, datetime):
+                values["approval_timestamp"] = value.replace(tzinfo=None)
+            else:
+                values["approval_timestamp"] = value
+        elif key == "approval_rationale":
+            values["approval_rationale"] = value
+        elif key == "data_classification":
+            values["data_classification"] = str(value)
+        elif key in {
+            "model_name", "prompt_template_version", "system_prompt_hash",
+            "task_prompt_hash", "token_steps_json", "lineage_snapshot_json",
+            "commit_sha", "artifact_checksum",
+        }:
+            values[key] = value
+        elif key == "total_input_tokens":
+            values["total_input_tokens"] = int(value)
+        elif key == "total_output_tokens":
+            values["total_output_tokens"] = int(value)
+        elif key == "total_cost_usd":
+            values["total_cost_usd"] = float(value)
+        elif key == "budget_pct":
+            values["budget_pct"] = float(value)
+    return values
+
+
 async def _async_update_run(run_id: str, **kwargs) -> None:
-    from sqlalchemy import select
+    """Persist run-field updates using a direct SQL UPDATE (not ORM mutation).
+
+    Using ``update().values()`` instead of loading-and-modifying an ORM object
+    guarantees the change reaches the DB regardless of SQLAlchemy session state.
+    """
+    from sqlalchemy import update
 
     from etl_agent.database.models import PipelineRunRecord
     from etl_agent.database.session import get_session_factory
 
-    factory = get_session_factory()
+    values = _build_update_values(kwargs)
+    if not values:
+        return  # nothing to do
+
     try:
+        factory = get_session_factory()
         async with factory() as session:
             result = await session.execute(
-                select(PipelineRunRecord).where(PipelineRunRecord.run_id == run_id)
+                update(PipelineRunRecord)
+                .where(PipelineRunRecord.run_id == run_id)
+                .values(**values)
             )
-            record = result.scalars().first()
-            if record is None:
+            if result.rowcount == 0:
                 logger.warning("run_store_update_not_found", run_id=run_id)
                 return
-
-            # Map flat kwargs onto ORM columns
-            for key, value in kwargs.items():
-                if value is None:
-                    continue
-                if key == "status":
-                    record.status = str(value)
-                elif key == "current_stage":
-                    record.current_stage = str(value)
-                elif key == "completed_at":
-                    if isinstance(value, str):
-                        try:
-                            record.completed_at = datetime.fromisoformat(value).replace(tzinfo=None)
-                        except ValueError:
-                            record.completed_at = _utcnow()
-                    elif isinstance(value, datetime):
-                        record.completed_at = value.replace(tzinfo=None)
-                    else:
-                        record.completed_at = value
-                elif key == "started_at":
-                    if isinstance(value, str):
-                        try:
-                            record.started_at = datetime.fromisoformat(value).replace(tzinfo=None)
-                        except ValueError:
-                            record.started_at = _utcnow()
-                    elif isinstance(value, datetime):
-                        record.started_at = value.replace(tzinfo=None)
-                    else:
-                        record.started_at = value
-                elif key == "github_pr_url":
-                    record.github_pr_url = value
-                elif key == "github_issue_url":
-                    record.github_issue_url = value
-                elif key == "s3_artifact_url":
-                    record.s3_artifact_url = value
-                elif key == "error_message":
-                    record.error_message = value
-                elif key == "test_results" and isinstance(value, dict):
-                    record.test_passed = value.get("passed")
-                    record.test_passed_count = value.get("passed_tests", 0)
-                    record.test_total = value.get("total_tests", 0)
-                    record.test_coverage_pct = value.get("coverage_pct", 0.0)
-                elif key == "retry_count":
-                    record.retry_count = int(value)
-                elif key == "approval_required":
-                    record.approval_required = bool(value)
-                elif key == "approver_actor":
-                    record.approver_actor = value
-                elif key == "approval_timestamp":
-                    if isinstance(value, datetime):
-                        record.approval_timestamp = value.replace(tzinfo=None)
-                    else:
-                        record.approval_timestamp = value
-                elif key == "approval_rationale":
-                    record.approval_rationale = value
-                elif key == "data_classification":
-                    record.data_classification = str(value)
-                elif key == "model_name":
-                    record.model_name = value
-                elif key == "prompt_template_version":
-                    record.prompt_template_version = value
-                elif key == "system_prompt_hash":
-                    record.system_prompt_hash = value
-                elif key == "task_prompt_hash":
-                    record.task_prompt_hash = value
-                elif key == "total_input_tokens":
-                    record.total_input_tokens = int(value)
-                elif key == "total_output_tokens":
-                    record.total_output_tokens = int(value)
-                elif key == "total_cost_usd":
-                    record.total_cost_usd = float(value)
-                elif key == "budget_pct":
-                    record.budget_pct = float(value)
-                elif key == "token_steps_json":
-                    record.token_steps_json = value
-                elif key == "lineage_snapshot_json":
-                    record.lineage_snapshot_json = value
-                elif key == "commit_sha":
-                    record.commit_sha = value
-                elif key == "artifact_checksum":
-                    record.artifact_checksum = value
-
             await session.commit()
+            logger.info(
+                "run_store_updated",
+                run_id=run_id,
+                fields=list(values.keys()),
+            )
     except Exception as exc:
         logger.error("run_store_update_failed", run_id=run_id, error=str(exc))
 
