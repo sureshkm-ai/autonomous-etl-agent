@@ -227,7 +227,7 @@ class ReactAgent(abc.ABC):
         initial_messages:   Initial message list to send to the LLM.
         call_llm:           Async callable(messages) → str.
         validate:           Callable(response) → (bool, error_str).
-        build_fix_message:  Callable(response, error, attempt) → str fix message.
+        build_fix_message:  Callable(error_str) → str fix message.
         agent_name:         Label for logging.
         max_rounds:         Maximum fix attempts (default 3).
 
@@ -251,7 +251,7 @@ class ReactAgent(abc.ABC):
             if attempt < max_rounds:
                 messages = messages + [
                     {"role": "assistant", "content": raw},
-                    {"role": "user", "content": build_fix_message(raw, err, attempt)},
+                    {"role": "user", "content": build_fix_message(err)},
                 ]
         return raw  # Return best attempt even if still invalid
 

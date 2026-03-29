@@ -156,7 +156,7 @@ class TestStoryParserAgent:
             mock_llm.ainvoke = AsyncMock(return_value=mock_llm_response)
 
             state: GraphState = {
-                "user_story": valid_user_story,
+                "story": valid_user_story,
                 "run_id": uuid4(),
                 "status": RunStatus.PARSING,
                 "retry_count": 0,
@@ -184,7 +184,7 @@ class TestStoryParserAgent:
             mock_llm.ainvoke = AsyncMock(return_value=mock_llm_response)
             result = await agent(
                 {
-                    "user_story": valid_user_story,
+                    "story": valid_user_story,
                     "run_id": uuid4(),
                     "status": RunStatus.PARSING,
                     "retry_count": 0,
@@ -210,7 +210,7 @@ class TestStoryParserAgent:
 
             result = await agent(
                 {
-                    "user_story": valid_user_story,
+                    "story": valid_user_story,
                     "run_id": uuid4(),
                     "status": RunStatus.PARSING,
                     "retry_count": 0,
