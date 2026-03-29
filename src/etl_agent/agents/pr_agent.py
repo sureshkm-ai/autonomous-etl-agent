@@ -71,10 +71,13 @@ class PRAgent(ReactAgent):
         msg = raw.strip()
         if not msg:
             return False, "Empty commit message"
-        if len(msg) > 200:
+        subject = msg.split("\n")[0].strip()
+        if not subject:
+            return False, "Empty subject line"
+        if len(subject) > 72:
             return (
                 False,
-                f"Commit message too long ({len(msg)} chars); keep under 72 for the subject line",
+                f"Subject line too long ({len(subject)} chars). Respond with ONLY a single line under 72 characters.",
             )
         return True, ""
 
@@ -82,20 +85,26 @@ class PRAgent(ReactAgent):
     def _fix_commit_msg(error: str) -> str:
         return (
             f"The commit message you wrote has an issue: {error}\n\n"
-            "Please write a concise commit message in the format:\n"
-            "  <type>(<scope>): <subject>\n\n"
-            "Where type is feat/fix/refactor/test. Keep the subject under 72 characters."
+            "Respond with ONLY a single line — no body, no blank lines, no explanation.\n"
+            "Format: <type>(<scope>): <subject>\n"
+            "Example: feat(rfm): add customer segmentation pipeline\n"
+            "Keep it under 72 characters total."
         )
 
     async def _generate_commit_message(self, state: GraphState) -> str:
         etl_spec = state["etl_spec"]
         prompt = (
-            f"Write a concise, professional git commit message for a PySpark ETL pipeline.\n\n"
+            f"Write a git commit subject line for a PySpark ETL pipeline.\n\n"
             f"Pipeline: {etl_spec.pipeline_name}\n"
             f"Description: {etl_spec.description}\n"
             f"Operations: {[op.value for op in etl_spec.operations]}\n\n"
-            f"Format: <type>(<scope>): <subject>\n\n"
-            f"Where type is feat/fix/refactor/test. Keep it under 72 characters."
+            f"Rules:\n"
+            f"- Respond with ONLY the subject line, nothing else\n"
+            f"- No body text, no blank lines, no explanation\n"
+            f"- Format: <type>(<scope>): <subject>\n"
+            f"- Types: feat/fix/refactor/test\n"
+            f"- Must be 72 characters or fewer\n\n"
+            f"Example: feat(pipeline): add rfm customer segmentation pipeline"
         )
         raw = await self.react_llm_loop(
             initial_messages=[{"role": "user", "content": prompt}],
