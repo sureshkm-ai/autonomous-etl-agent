@@ -19,7 +19,7 @@ from etl_agent.core.config import get_settings
 from etl_agent.core.logging import get_logger
 from etl_agent.core.models import RunStatus, UserStory
 
-from .run_store import create_run, update_run
+from .run_store import async_create_run, async_update_run
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -50,7 +50,7 @@ async def _persist_user_story(story: UserStory) -> None:
             data_classification=story.data_classification.value,
             tags=json.dumps(story.tags),
             raw_json=story.model_dump_json(),
-            submitted_at=datetime.now(UTC),
+            submitted_at=datetime.now(UTC).replace(tzinfo=None),
         )
         async with factory() as session:
             from etl_agent.database.models import UserStoryRecord as _USR
@@ -129,7 +129,7 @@ async def submit_story(
     await _persist_user_story(story)
 
     # 2. Register run
-    create_run(run_id=run_id, story_id=story.id, story_title=story.title)
+    await async_create_run(run_id=run_id, story_id=story.id, story_title=story.title)
 
     # 3. Audit events
     await write_audit_event(
@@ -166,7 +166,7 @@ async def submit_story(
             execution_mode = "sqs"
         except Exception as exc:
             logger.error("sqs_publish_failed", run_id=run_id, error=str(exc))
-            update_run(run_id, status="FAILED", error_message=f"SQS publish failed: {exc}")
+            await async_update_run(run_id, status="FAILED", error_message=f"SQS publish failed: {exc}")
             return {
                 "run_id": run_id,
                 "story_id": story.id,
