@@ -92,7 +92,7 @@ class StoryParserAgent(ReactAgent):
         )
 
     async def run(self, state: GraphState) -> dict[str, Any]:
-        story = state["user_story"]
+        story = state["story"]
         logger.info("story_parser_started", story_id=story.id)
 
         try:
