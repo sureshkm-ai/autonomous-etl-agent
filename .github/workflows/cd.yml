@@ -192,6 +192,20 @@ jobs:
           container-name:  worker
           image:           ${{ env.IMAGE_URI }}
 
+      - name: Ensure worker service has at least 1 desired task
+        run: |
+          CURRENT=$(aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.WORKER_SERVICE }}" \
+            --query 'services[0].desiredCount' --output text)
+          if [ "${CURRENT}" = "0" ]; then
+            aws ecs update-service \
+              --cluster "${{ env.ECS_CLUSTER }}" \
+              --service "${{ env.WORKER_SERVICE }}" \
+              --desired-count 1
+            echo "Worker scaled from 0 → 1"
+          fi
+
       - name: Deploy Worker service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
