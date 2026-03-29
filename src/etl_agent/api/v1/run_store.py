@@ -103,17 +103,21 @@ async def _async_update_run(run_id: str, **kwargs) -> None:
                 elif key == "completed_at":
                     if isinstance(value, str):
                         try:
-                            record.completed_at = datetime.fromisoformat(value)
+                            record.completed_at = datetime.fromisoformat(value).replace(tzinfo=None)
                         except ValueError:
-                            record.completed_at = datetime.now(UTC)
+                            record.completed_at = _utcnow()
+                    elif isinstance(value, datetime):
+                        record.completed_at = value.replace(tzinfo=None)
                     else:
                         record.completed_at = value
                 elif key == "started_at":
                     if isinstance(value, str):
                         try:
-                            record.started_at = datetime.fromisoformat(value)
+                            record.started_at = datetime.fromisoformat(value).replace(tzinfo=None)
                         except ValueError:
-                            record.started_at = datetime.now(UTC)
+                            record.started_at = _utcnow()
+                    elif isinstance(value, datetime):
+                        record.started_at = value.replace(tzinfo=None)
                     else:
                         record.started_at = value
                 elif key == "github_pr_url":
@@ -136,7 +140,10 @@ async def _async_update_run(run_id: str, **kwargs) -> None:
                 elif key == "approver_actor":
                     record.approver_actor = value
                 elif key == "approval_timestamp":
-                    record.approval_timestamp = value
+                    if isinstance(value, datetime):
+                        record.approval_timestamp = value.replace(tzinfo=None)
+                    else:
+                        record.approval_timestamp = value
                 elif key == "approval_rationale":
                     record.approval_rationale = value
                 elif key == "data_classification":

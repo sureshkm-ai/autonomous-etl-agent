@@ -75,7 +75,7 @@ class DeployAgent(ReactAgent):
             # Step 3: Trigger Airflow (skipped when airflow_enabled=false in config)
             dag_run_id: str | None = None
             if self.settings.airflow_enabled:
-                user_story = state.get("user_story")
+                user_story = state.get("story")
                 story_id = user_story.id if user_story else "unknown"
                 dag_run_id = await self.react_tool_loop(
                     action=lambda: self._trigger_airflow(

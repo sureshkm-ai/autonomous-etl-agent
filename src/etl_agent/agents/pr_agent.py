@@ -110,7 +110,7 @@ class PRAgent(ReactAgent):
         from github import GithubException
 
         etl_spec = state["etl_spec"]
-        story = state.get("user_story")
+        story = state.get("story")
         logger.info("pr_agent_started", pipeline=etl_spec.pipeline_name)
 
         try:
