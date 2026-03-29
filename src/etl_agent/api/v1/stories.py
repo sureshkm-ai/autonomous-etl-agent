@@ -235,14 +235,14 @@ async def _run_pipeline_background(story: UserStory, run_id: str, *, dry_run: bo
                         "token_steps_json": json.dumps(td.get("steps", [])),
                     }
                 )
-        update_run(run_id, **kwargs)
+        await async_update_run(run_id, **kwargs)
 
     try:
         final_state = await stream_pipeline(story=story, on_update=_on_update, dry_run=dry_run)
         status_val = final_state.get("status")
         status_str = status_val.value if hasattr(status_val, "value") else str(status_val)
 
-        update_run(
+        await async_update_run(
             run_id,
             status=status_str,
             completed_at=datetime.now(UTC).isoformat(),
@@ -262,7 +262,7 @@ async def _run_pipeline_background(story: UserStory, run_id: str, *, dry_run: bo
         logger.info("background_pipeline_complete", run_id=run_id, status=status_str)
 
     except Exception as e:
-        update_run(
+        await async_update_run(
             run_id,
             status="FAILED",
             error_message=str(e),
