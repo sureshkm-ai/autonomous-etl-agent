@@ -37,21 +37,30 @@ jobs:
 
       - name: Build, tag, and push image
         id: image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_URI="${{ env.ECR_REPO }}:${IMAGE_TAG}"
+          # Validate that the ECR_REPOSITORY secret is set
+          if [ -z "${ECR_REPO}" ]; then
+            echo "❌ ECR_REPO is empty — check that ECR_REPOSITORY is set in GitHub Secrets"
+            exit 1
+          fi
+
+          IMAGE_URI="${ECR_REPO}:${GITHUB_SHA}"
+          echo "Building image: ${IMAGE_URI}"
+
           docker build \
             --file infra/Dockerfile \
-            --build-arg GIT_SHA="${IMAGE_TAG}" \
+            --build-arg GIT_SHA="${GITHUB_SHA}" \
             --tag "${IMAGE_URI}" \
-            --cache-from "${{ env.ECR_REPO }}:latest" \
+            --cache-from "${ECR_REPO}:latest" \
             .
           docker push "${IMAGE_URI}"
-          # Also tag latest so the next build can use it as cache
-          docker tag "${IMAGE_URI}" "${{ env.ECR_REPO }}:latest"
-          docker push "${{ env.ECR_REPO }}:latest"
-          echo "uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+          # Tag latest for cache on the next build (non-fatal if it fails)
+          docker tag "${IMAGE_URI}" "${ECR_REPO}:latest"
+          docker push "${ECR_REPO}:latest" || echo "⚠️  Could not push :latest tag (non-fatal)"
+
+          echo "uri=${IMAGE_URI}" >> "${GITHUB_OUTPUT}"
+          echo "✅ Pushed: ${IMAGE_URI}"
 
   # ─────────────────────────────────────────────────────────────────────────
   # 2. Run DB migrations before deploying new code
