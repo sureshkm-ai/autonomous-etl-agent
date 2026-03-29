@@ -28,6 +28,11 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _utcnow() -> datetime:
+    """Return current UTC time as a timezone-naive datetime (for TIMESTAMP columns)."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
 def _run_async(coro):
     """Run *coro* in a fresh event loop (safe when called from sync code)."""
     try:
@@ -60,7 +65,7 @@ async def _async_create_run(run_id: str, story_id: str, story_title: str) -> Non
         story_id=story_id,
         story_title=story_title,
         status="PENDING",
-        submitted_at=datetime.now(UTC),
+        submitted_at=_utcnow(),
     )
     try:
         async with factory() as session:
@@ -294,6 +299,10 @@ def list_runs(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Async variants (for use inside async route handlers / background tasks)
 # ---------------------------------------------------------------------------
+
+
+async def async_create_run(run_id: str, story_id: str, story_title: str) -> None:
+    await _async_create_run(run_id, story_id, story_title)
 
 
 async def async_get_run(run_id: str) -> dict[str, Any] | None:

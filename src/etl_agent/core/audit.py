@@ -60,7 +60,7 @@ async def write_audit_event(
         from_status=from_status,
         to_status=to_status,
         payload_json=json.dumps(payload or {}),
-        timestamp=ts,
+        timestamp=ts.replace(tzinfo=None),  # TIMESTAMP WITHOUT TIME ZONE column
     )
 
     try:
