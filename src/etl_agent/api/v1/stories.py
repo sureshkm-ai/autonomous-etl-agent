@@ -197,7 +197,10 @@ async def submit_story(
 
 
 async def _run_pipeline_background(
-    story: UserStory, run_id: str, *, dry_run: bool = False
+    story: UserStory,
+    run_id: str,
+    *,
+    dry_run: bool = False,
 ) -> None:
     """Runs inside a FastAPI BackgroundTask (no-SQS path)."""
     from etl_agent.agents.orchestrator import stream_pipeline
