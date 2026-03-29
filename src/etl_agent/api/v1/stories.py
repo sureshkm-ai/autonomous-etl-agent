@@ -166,7 +166,11 @@ async def submit_story(
             execution_mode = "sqs"
         except Exception as exc:
             logger.error("sqs_publish_failed", run_id=run_id, error=str(exc))
-            await async_update_run(run_id, status="FAILED", error_message=f"SQS publish failed: {exc}")
+            await async_update_run(
+                run_id,
+                status="FAILED",
+                error_message=f"SQS publish failed: {exc}",
+            )
             return {
                 "run_id": run_id,
                 "story_id": story.id,
@@ -192,7 +196,9 @@ async def submit_story(
 # ─── Background pipeline driver (local / EC2 mode only) ──────────────────────
 
 
-async def _run_pipeline_background(story: UserStory, run_id: str, *, dry_run: bool = False) -> None:
+async def _run_pipeline_background(
+    story: UserStory, run_id: str, *, dry_run: bool = False
+) -> None:
     """Runs inside a FastAPI BackgroundTask (no-SQS path)."""
     from etl_agent.agents.orchestrator import stream_pipeline
 
