@@ -59,6 +59,18 @@
         {
           "name": "SQS_QUEUE_URL",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:SQS_QUEUE_URL::"
+        },
+        {
+          "name": "GITHUB_OWNER",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:GITHUB_OWNER::"
+        },
+        {
+          "name": "GITHUB_REPO",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:GITHUB_REPO::"
+        },
+        {
+          "name": "AWS_S3_ARTIFACTS_BUCKET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:453711491609:secret:etl-agent/app:AWS_S3_ARTIFACTS_BUCKET::"
         }
       ],
       "logConfiguration": {

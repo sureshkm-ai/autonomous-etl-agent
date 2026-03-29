@@ -73,10 +73,13 @@ locals {
   ]
 
   common_secrets = [
-    { name = "ANTHROPIC_API_KEY", valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:ANTHROPIC_API_KEY::" },
-    { name = "API_KEY",           valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:API_KEY::" },
-    { name = "GITHUB_TOKEN",      valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:GITHUB_TOKEN::" },
-    { name = "DB_PASSWORD",       valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::" },
+    { name = "ANTHROPIC_API_KEY",      valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:ANTHROPIC_API_KEY::" },
+    { name = "API_KEY",                valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:API_KEY::" },
+    { name = "GITHUB_TOKEN",           valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:GITHUB_TOKEN::" },
+    { name = "GITHUB_OWNER",           valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:GITHUB_OWNER::" },
+    { name = "GITHUB_REPO",            valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:GITHUB_REPO::" },
+    { name = "AWS_S3_ARTIFACTS_BUCKET", valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:AWS_S3_ARTIFACTS_BUCKET::" },
+    { name = "DB_PASSWORD",            valueFrom = "${data.aws_secretsmanager_secret.app_secrets.arn}:DB_PASSWORD::" },
   ]
 }
 
