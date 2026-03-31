@@ -10,6 +10,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from etl_agent.agents.base import ReactAgent
 from etl_agent.core.config import get_settings
+from etl_agent.core.data_catalog import DataEntity, get_catalog
 from etl_agent.core.exceptions import StoryParseError
 from etl_agent.core.logging import get_logger
 from etl_agent.core.models import ETLSpec, RunStatus
@@ -96,7 +97,29 @@ class StoryParserAgent(ReactAgent):
         logger.info("story_parser_started", story_id=story.id)
 
         try:
-            prompt = build_story_parser_prompt(story)
+            # Catalog check #1 — fetch all entities so the LLM can resolve
+            # which datasets are needed and where they live in S3.
+            catalog_entities: list[DataEntity] = []
+            try:
+                catalog_entities = get_catalog().list_entities()
+                logger.info(
+                    "story_parser_catalog_fetched",
+                    story_id=story.id,
+                    entity_count=len(catalog_entities),
+                )
+            except Exception as catalog_exc:
+                logger.warning(
+                    "story_parser_catalog_unavailable",
+                    story_id=story.id,
+                    error=str(catalog_exc),
+                    detail="Falling back to assumption-based generation",
+                )
+
+            prompt = build_story_parser_prompt(
+                story,
+                catalog_entities,
+                self.settings.output_data_bucket,
+            )
             raw_response = await self.react_llm_loop(
                 initial_messages=[{"role": "user", "content": prompt}],
                 call_llm=self._call_llm,

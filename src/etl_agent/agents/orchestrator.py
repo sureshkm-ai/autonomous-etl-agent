@@ -4,6 +4,8 @@ Graph topology
 --------------
   parse_story
       ↓
+  resolve_catalog ← looks up source entity schema in AWS Glue Data Catalog
+      ↓
   generate_code
       ↓
   run_tests
@@ -54,6 +56,67 @@ async def _node_parse(state: GraphState) -> dict[str, Any]:
     agent = StoryParserAgent()
     result = await agent.run(state)
     return {**result, "status": RunStatus.CODING, "current_stage": "parse_story"}
+
+
+async def _node_resolve_catalog(state: GraphState) -> dict[str, Any]:
+    """Catalog check #2 — retrieve the exact source schema from AWS Glue.
+
+    Looks up the source S3 path (set by parse_story) in the Glue Data Catalog
+    and returns the column schema as ``source_schema`` in GraphState. The
+    CodingAgent uses this for grounded code generation with real column names.
+
+    If the entity is not found (catalog empty, path mismatch) ``source_schema``
+    is set to None — the coding agent falls back to assumption-based generation
+    without hard-failing the pipeline.
+    """
+    from etl_agent.core.data_catalog import get_catalog
+
+    etl_spec = state.get("etl_spec")
+    if etl_spec is None:
+        logger.warning("resolve_catalog_skipped", reason="etl_spec not yet set")
+        return {"source_schema": None, "current_stage": "resolve_catalog"}
+
+    source_path: str = etl_spec.source.path
+
+    logger.info(
+        "resolve_catalog_started",
+        run_id=state.get("run_id"),
+        source=source_path,
+    )
+
+    try:
+        entity = get_catalog().get_entity_by_path(source_path)
+    except Exception as exc:
+        logger.warning(
+            "resolve_catalog_failed",
+            run_id=state.get("run_id"),
+            source=source_path,
+            error=str(exc),
+        )
+        entity = None
+
+    if entity is not None:
+        schema: dict | None = {
+            "columns": [{"name": f.name, "type": f.type} for f in entity.columns],
+            "format": entity.format,
+            "source": source_path,
+        }
+        logger.info(
+            "resolve_catalog_complete",
+            run_id=state.get("run_id"),
+            entity=entity.name,
+            column_count=len(entity.columns),
+        )
+    else:
+        schema = None
+        logger.warning(
+            "resolve_catalog_not_found",
+            run_id=state.get("run_id"),
+            source=source_path,
+            detail="Falling back to assumption-based code generation",
+        )
+
+    return {"source_schema": schema, "current_stage": "resolve_catalog"}
 
 
 async def _node_code(state: GraphState) -> dict[str, Any]:
@@ -174,6 +237,7 @@ def _build_graph():
 
     # Register nodes
     builder.add_node("parse_story", _node_parse)
+    builder.add_node("resolve_catalog", _node_resolve_catalog)
     builder.add_node("generate_code", _node_code)
     builder.add_node("run_tests", _node_test)
     builder.add_node("approval_gate", _node_approval_gate)
@@ -182,7 +246,9 @@ def _build_graph():
 
     # Linear edges
     builder.set_entry_point("parse_story")
-    builder.add_edge("parse_story", "generate_code")
+    # parse_story → resolve_catalog → generate_code (grounded codegen)
+    builder.add_edge("parse_story", "resolve_catalog")
+    builder.add_edge("resolve_catalog", "generate_code")
 
     # dry_run short-circuit: skip tests, PR, deploy
     def _route_after_code(state: GraphState) -> str:

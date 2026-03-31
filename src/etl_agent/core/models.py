@@ -99,15 +99,39 @@ class TransformationStep(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
 
 
+class UserStoryRequest(BaseModel):
+    """Public-facing model for story submission — users provide only these three fields.
+
+    The agent resolves everything else (source paths, schemas, transformations)
+    autonomously from the Glue Data Catalog.
+    """
+
+    title: str = Field(..., min_length=1, max_length=256)
+    description: str = Field(..., min_length=1, max_length=2000)
+    acceptance_criteria: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("acceptance_criteria", mode="before")
+    @classmethod
+    def validate_criteria(cls, v: list[Any]) -> list[Any]:
+        for item in v:
+            if len(str(item)) > 500:
+                raise ValueError("Each acceptance criterion must be 500 characters or fewer.")
+        return v
+
+
 class UserStory(BaseModel):
-    """User story input with governance field constraints."""
+    """Internal user story model with all governance fields.
+
+    Created from a UserStoryRequest by the API endpoint. source and target
+    start as None — the StoryParserAgent populates them from the Glue catalog.
+    """
 
     id: str = Field(..., min_length=1, max_length=128, pattern=r"^[\w\-\.]+$")
     title: str = Field(..., min_length=1, max_length=256)
     description: str = Field(..., min_length=1, max_length=2000)
     acceptance_criteria: list[str] = Field(default_factory=list, max_length=20)
-    source: DataSource
-    target: DataSource
+    source: DataSource | None = None
+    target: DataSource | None = None
     transformations: list[TransformationStep | Transformation] = []
     tags: list[str] = Field(default_factory=list, max_length=20)
     output_format: str = "script"

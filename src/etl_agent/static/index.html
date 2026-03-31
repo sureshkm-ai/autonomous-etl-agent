@@ -73,6 +73,15 @@
         </svg>
         API Docs
       </button>
+
+      <button onclick="navigate('catalog')" id="nav-catalog"
+        class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-left">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16M9 11h6m-6 4h4"/>
+        </svg>
+        Data Catalog
+      </button>
     </nav>
 
     <!-- API Key + connection status -->
@@ -194,13 +203,14 @@ function navigate(page, params = {}) {
   const nb = el(`nav-${page}`);
   if (nb) nb.classList.add('nav-active');
 
-  const titles = { dashboard: 'Dashboard', new: 'New Pipeline', docs: 'API Docs', run: 'Run Details' };
+  const titles = { dashboard: 'Dashboard', new: 'New Pipeline', docs: 'API Docs', run: 'Run Details', catalog: 'Data Catalog' };
   set('page-heading', 'textContent', titles[page] || page);
 
   if (page === 'dashboard') renderDashboard();
-  else if (page === 'new')   renderNew();
-  else if (page === 'run')   renderRunDetail(params.id);
-  else if (page === 'docs')  { window.open('/docs', '_blank'); navigate('dashboard'); }
+  else if (page === 'new')     renderNew();
+  else if (page === 'run')     renderRunDetail(params.id);
+  else if (page === 'catalog') renderCatalog();
+  else if (page === 'docs')    { window.open('/docs', '_blank'); navigate('dashboard'); }
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -307,16 +317,13 @@ function renderNew() {
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <h2 class="font-semibold text-slate-800">Story Details</h2>
-          <p class="text-xs text-slate-400 mt-0.5">Describe the ETL pipeline you want the agent to build</p>
+          <p class="text-xs text-slate-400 mt-0.5">Describe the ETL pipeline you want the agent to build. Source schemas are resolved automatically from the Data Catalog.</p>
         </div>
         <form id="story-form" onsubmit="handleSubmit(event)" class="p-6 space-y-4">
 
-          <div class="grid grid-cols-2 gap-3">
-            ${field('Story ID',  'story_id',    'amazon-rfm-001',                  true)}
-            ${field('Title',     'story_title', 'RFM Customer Segmentation',       true)}
-          </div>
+          ${field('Title', 'story_title', 'RFM Customer Segmentation', true)}
           ${textarea('Description', 'description',
-              'Read orders from S3, compute recency / frequency / monetary scores, segment into tiers…', true)}
+              'Compute recency, frequency, and monetary scores per customer from delivered orders, then segment customers into tiers…', true)}
 
           <!-- Acceptance Criteria -->
           <div>
@@ -332,42 +339,6 @@ function renderNew() {
               Add criterion
             </button>
           </div>
-
-          <!-- Source / Target -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-slate-600">Source Path <span class="text-red-400">*</span></label>
-              <input name="source_path" required placeholder="s3://bucket/input/"
-                class="inp w-full" />
-              ${formatSel('source_format')}
-            </div>
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-slate-600">Target Path <span class="text-red-400">*</span></label>
-              <input name="target_path" required placeholder="s3://bucket/output/"
-                class="inp w-full" />
-              ${formatSel('target_format')}
-              <select name="target_mode" class="inp w-full">
-                <option value="overwrite">overwrite</option>
-                <option value="append">append</option>
-                <option value="merge">merge</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Transformations -->
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-2">Transformations</label>
-            <div id="transform-list" class="space-y-3"></div>
-            <button type="button" onclick="addTransform()"
-              class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-              </svg>
-              Add transformation
-            </button>
-          </div>
-
-          ${field('Tags (comma-separated)', 'tags', 'pyspark, s3, delta, rfm')}
 
           <div class="pt-1">
             <button id="run-btn" type="submit"
@@ -400,14 +371,6 @@ function textarea(label, name, placeholder, required = false) {
       class="inp w-full resize-none"></textarea>
   </div>`;
 }
-function formatSel(name) {
-  return `<select name="${name}" class="inp w-full">
-    <option value="parquet">parquet</option>
-    <option value="delta">delta</option>
-    <option value="csv">csv</option>
-    <option value="json">json</option>
-  </select>`;
-}
 function criteriaRow(val = '') {
   return `<div class="flex gap-2 items-center">
     <input type="text" name="criteria" value="${val}" placeholder="e.g. Output must include RFM scores"
@@ -427,34 +390,6 @@ function addCriteria() {
   list.appendChild(div.firstElementChild);
 }
 
-function transformRow(op='filter', name='', desc='', params='') {
-  const ops = ['filter','aggregate','enrich','join','dedupe','upsert','fill_null','rename','cast','sort'];
-  const opts = ops.map(o => `<option value="${o}" ${o===op?'selected':''}>${o}</option>`).join('');
-  return `<div class="transform-row border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50/50">
-    <div class="flex gap-2 items-start">
-      <select name="t_operation" class="inp text-xs w-32 flex-shrink-0">${opts}</select>
-      <input type="text" name="t_name" value="${name}" placeholder="step name (e.g. remove_cancelled_orders)"
-        class="inp flex-1 text-xs" />
-      <button type="button" onclick="this.closest('.transform-row').remove()"
-        class="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 mt-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <input type="text" name="t_description" value="${desc}" placeholder="What this step does…"
-      class="inp w-full text-xs" />
-    <textarea name="t_params" rows="2" placeholder='Optional params JSON, e.g. {"condition": "status = \\'ACTIVE\\'"}'
-      class="inp w-full text-xs resize-none font-mono">${params}</textarea>
-  </div>`;
-}
-function addTransform() {
-  const list = el('transform-list');
-  const div = document.createElement('div');
-  div.innerHTML = transformRow();
-  list.appendChild(div.firstElementChild);
-}
-
 // ─── Form submit ─────────────────────────────────────────────────────────────
 async function handleSubmit(e) {
   e.preventDefault();
@@ -463,28 +398,11 @@ async function handleSubmit(e) {
   const f = e.target;
   const criteria = [...f.querySelectorAll('[name="criteria"]')]
     .map(i => i.value.trim()).filter(Boolean);
-  const tags = f.tags.value.split(',').map(t => t.trim()).filter(Boolean);
-
-  // Collect transformations from dynamic rows
-  const transformations = [...document.querySelectorAll('.transform-row')].map(row => {
-    const op   = row.querySelector('[name="t_operation"]').value;
-    const name = row.querySelector('[name="t_name"]').value.trim();
-    const desc = row.querySelector('[name="t_description"]').value.trim();
-    const raw  = row.querySelector('[name="t_params"]').value.trim();
-    let params = {};
-    if (raw) { try { params = JSON.parse(raw); } catch { params = { raw }; } }
-    return { operation: op, name, description: desc, params };
-  });
 
   const body = {
-    id: f.story_id.value.trim(),
     title: f.story_title.value.trim(),
     description: f.description.value.trim(),
     acceptance_criteria: criteria,
-    source: { path: f.source_path.value.trim(), format: f.source_format.value },
-    target: { path: f.target_path.value.trim(), format: f.target_format.value, mode: f.target_mode.value },
-    transformations,
-    tags,
   };
 
   const btn = el('run-btn');
@@ -682,6 +600,93 @@ function emptyTracker() {
     </div>
     <h3 class="text-sm font-semibold text-slate-700 mb-1">No Active Pipeline</h3>
     <p class="text-xs text-slate-400 max-w-xs">Submit a story on the left to see live pipeline progress here</p>
+  </div>`;
+}
+
+// ─── Data Catalog ────────────────────────────────────────────────────────────
+async function renderCatalog() {
+  html('page', spinner('Loading catalog…'));
+  let entities = [];
+  try {
+    entities = await api('/api/v1/catalog');
+  } catch (err) {
+    html('page', `<div class="text-red-500 text-sm p-4">${err.message}</div>`);
+    return;
+  }
+
+  el('page').innerHTML = `
+  <div class="fade-in space-y-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="font-semibold text-slate-800">Registered Entities</h2>
+        <p class="text-xs text-slate-400 mt-0.5">${entities.length} table${entities.length !== 1 ? 's' : ''} from AWS Glue Data Catalog</p>
+      </div>
+      <button onclick="renderCatalog()"
+        class="text-xs text-slate-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    ${entities.length === 0 ? `
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm py-16 text-center">
+      <svg class="w-12 h-12 text-slate-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16"/>
+      </svg>
+      <p class="text-sm font-medium text-slate-500">No entities registered</p>
+      <p class="text-xs text-slate-400 mt-1">Run the Glue Crawler to populate the catalog from S3.</p>
+    </div>` : `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      ${entities.map(catalogCard).join('')}
+    </div>`}
+  </div>`;
+}
+
+function catalogCard(entity) {
+  const colRows = (entity.columns || []).map(c =>
+    `<tr class="border-t border-slate-100">
+      <td class="py-1.5 pr-4 text-xs font-mono text-slate-700">${c.name}</td>
+      <td class="py-1.5 text-xs text-slate-400">${c.type}</td>
+    </tr>`
+  ).join('');
+
+  const formatBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">${entity.format || 'csv'}</span>`;
+  const classificationBadge = entity.data_classification
+    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">${entity.data_classification}</span>`
+    : '';
+
+  return `
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <h3 class="font-semibold text-slate-800 text-sm">${entity.display_name || entity.name}</h3>
+        <div class="flex items-center gap-1.5 flex-shrink-0">${formatBadge}${classificationBadge}</div>
+      </div>
+      ${entity.description ? `<p class="text-xs text-slate-500 mb-2">${entity.description}</p>` : ''}
+      <div class="flex items-center gap-1.5 text-xs text-slate-400 font-mono truncate">
+        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+        </svg>
+        <span class="truncate">${entity.s3_path || '—'}</span>
+      </div>
+    </div>
+    ${colRows ? `
+    <div class="px-5 py-3 max-h-52 overflow-y-auto">
+      <table class="w-full">
+        <thead>
+          <tr>
+            <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-1.5">Column</th>
+            <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider pb-1.5">Type</th>
+          </tr>
+        </thead>
+        <tbody>${colRows}</tbody>
+      </table>
+    </div>` : ''}
   </div>`;
 }
 

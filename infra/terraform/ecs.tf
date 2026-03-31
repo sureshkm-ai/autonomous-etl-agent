@@ -70,6 +70,8 @@ locals {
     { name = "CORS_ORIGINS",                     value = var.cors_origins },
     { name = "MAX_TOKENS_PER_RUN",               value = tostring(var.max_tokens_per_run) },
     { name = "BUDGET_APPROVAL_THRESHOLD_PCT",    value = tostring(var.budget_approval_threshold_pct) },
+    { name = "GLUE_CATALOG_DATABASE",            value = var.glue_catalog_database },
+    { name = "OUTPUT_DATA_BUCKET",               value = "s3://${aws_s3_bucket.processed.bucket}/" },
   ]
 
   common_secrets = [

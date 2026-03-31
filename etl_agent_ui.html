@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Autonomous ETL Agent</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --sidebar-bg: #161b22;
+    --card-bg: #1a1f2e;
+    --border: #30363d;
+    --accent: #ff4b4b;
+    --accent2: #4b8bff;
+    --success: #21c55d;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --input-bg: #0d1117;
+    --radius: 8px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; display: flex; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 300px; min-width: 300px; background: var(--sidebar-bg);
+    border-right: 1px solid var(--border); padding: 24px 16px;
+    display: flex; flex-direction: column; gap: 20px; overflow-y: auto;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text { font-size: 16px; font-weight: 700; }
+  .logo-sub { font-size: 11px; color: var(--text-muted); }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; }
+  .config-group { display: flex; flex-direction: column; gap: 10px; }
+  label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); padding: 8px 10px;
+    font-size: 13px; font-family: var(--font); outline: none; transition: border-color .15s;
+  }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
+    border-color: var(--accent2);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label { font-size: 13px; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; cursor: pointer; transition: .2s; }
+  .slider:before { content: ''; position: absolute; height: 16px; width: 16px;
+    left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .run-history { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+  .history-item {
+    padding: 8px 10px; background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); cursor: pointer; transition: border-color .15s;
+    font-size: 12px;
+  }
+  .history-item:hover { border-color: var(--accent2); }
+  .history-item .h-story { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-item .h-meta { color: var(--text-muted); margin-top: 2px; display: flex; justify-content: space-between; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge-done { background: #166534; color: #86efac; }
+  .badge-failed { background: #7f1d1d; color: #fca5a5; }
+  .badge-running { background: #1e3a5f; color: #93c5fd; }
+  .badge-dry { background: #3b2f00; color: #fcd34d; }
+  .badge-pending { background: #292929; color: #9ca3af; }
+
+  /* ── Main ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #topbar { padding: 16px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; background: var(--sidebar-bg); }
+  #topbar h1 { font-size: 18px; font-weight: 700; }
+  #topbar .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 6px; }
+  #content { flex: 1; overflow-y: auto; padding: 28px; display: flex; gap: 24px; }
+
+  /* ── Form Panel ── */
+  #form-panel { flex: 1; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .card-title span { color: var(--text-muted); font-size: 12px; font-weight: 400; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group label { font-size: 12px; color: var(--text-muted); }
+  .required { color: var(--accent); margin-left: 2px; }
+  .hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .tag-input-wrapper { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius); min-height: 38px; align-items: center; cursor: text; }
+  .tag-input-wrapper:focus-within { border-color: var(--accent2); }
+  .tag { background: #1e3a5f; color: #93c5fd; padding: 2px 8px; border-radius: 20px; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+  .tag button { background: none; border: none; color: #93c5fd; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+  .tag-input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; flex: 1; min-width: 80px; }
+  .criteria-list { display: flex; flex-direction: column; gap: 6px; }
+  .criteria-item { display: flex; align-items: center; gap: 8px; }
+  .criteria-item input { flex: 1; }
+  .criteria-item button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px; transition: color .15s; }
+  .criteria-item button:hover { color: var(--error); }
+  .add-btn { background: none; border: 1px dashed var(--border); color: var(--text-muted);
+    border-radius: var(--radius); padding: 7px 12px; font-size: 12px; cursor: pointer; width: 100%; transition: .15s; }
+  .add-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .submit-btn { background: var(--accent); color: white; border: none; border-radius: var(--radius);
+    padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+    transition: opacity .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .submit-btn:hover { opacity: .85; }
+  .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .dry-row { display: flex; align-items: center; gap: 12px; }
+  .dry-badge { background: #3b2f00; color: #fcd34d; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+  /* ── Results Panel ── */
+  #results-panel { width: 360px; min-width: 320px; display: flex; flex-direction: column; gap: 16px; }
+  .status-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .status-header .title { font-size: 13px; font-weight: 600; }
+  .progress-bar-wrap { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+  .progress-bar { height: 100%; border-radius: 4px; background: var(--accent2); transition: width .4s; }
+  .stage-list { display: flex; flex-direction: column; gap: 8px; }
+  .stage-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); }
+  .stage-icon { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .stage-icon.done { border-color: var(--success); background: #166534; color: #86efac; }
+  .stage-icon.active { border-color: var(--accent2); background: #1e3a5f; color: #93c5fd; animation: pulse 1.2s infinite; }
+  .stage-icon.fail { border-color: var(--error); background: #7f1d1d; color: #fca5a5; }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.5 } }
+  .stage-name.active { color: var(--text); font-weight: 600; }
+  .stage-name.done { color: var(--text); }
+  .result-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid var(--border); }
+  .result-row .rl { font-size: 11px; color: var(--text-muted); }
+  .result-row .rv { font-size: 12px; color: var(--text); word-break: break-all; }
+  .result-row a { color: var(--accent2); text-decoration: none; }
+  .result-row a:hover { text-decoration: underline; }
+  .error-box { background: #2d0f0f; border: 1px solid #7f1d1d; border-radius: var(--radius); padding: 12px; font-size: 12px; color: #fca5a5; word-break: break-word; margin-top: 10px; }
+  .empty-state { color: var(--text-muted); font-size: 13px; text-align: center; padding: 32px 0; }
+  .test-results { background: #0a1a0a; border: 1px solid #166534; border-radius: var(--radius); padding: 12px; font-size: 12px; color: #86efac; }
+  .test-results .tr-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  #api-status { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside id="sidebar">
+  <div>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">ETL Agent</div>
+        <div class="logo-sub">Autonomous Pipeline Builder</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">⚙️ Configuration</div>
+    <div class="config-group">
+      <div class="field-group">
+        <label>API Endpoint</label>
+        <input type="text" id="cfg-endpoint" placeholder="http://your-alb-dns" />
+      </div>
+      <div class="field-group">
+        <label>API Key</label>
+        <input type="password" id="cfg-apikey" placeholder="Your X-API-Key" />
+      </div>
+      <button class="submit-btn" style="background:#21863a;padding:9px" onclick="checkHealth()">
+        🔍 Check Connection
+      </button>
+      <div id="api-status"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">📋 Run History</div>
+    <div class="run-history" id="run-history">
+      <div style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">No runs yet</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div id="topbar">
+    <h1>Submit User Story</h1>
+    <div id="api-status-top" style="font-size:12px;color:var(--text-muted)"></div>
+  </div>
+
+  <div id="content">
+    <!-- Form -->
+    <div id="form-panel">
+
+      <!-- Story Info -->
+      <div class="card">
+        <div class="card-title">📝 Story Details</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="field-row">
+            <div class="field-group">
+              <label>Story ID <span class="required">*</span></label>
+              <input type="text" id="f-id" placeholder="e.g. rfm-pipeline-001" />
+              <div class="hint">Alphanumeric, hyphens, dots only</div>
+            </div>
+            <div class="field-group">
+              <label>Data Classification</label>
+              <select id="f-classification">
+                <option value="internal">Internal</option>
+                <option value="public">Public</option>
+                <option value="confidential">Confidential</option>
+                <option value="restricted">Restricted</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Title <span class="required">*</span></label>
+            <input type="text" id="f-title" placeholder="e.g. RFM Customer Segmentation Pipeline" />
+          </div>
+          <div class="field-group">
+            <label>Description <span class="required">*</span></label>
+            <textarea id="f-description" rows="4" placeholder="Describe what this pipeline should do. Be specific about the data transformations required..."></textarea>
+          </div>
+          <div class="field-group">
+            <label>Tags</label>
+            <div class="tag-input-wrapper" id="tag-wrapper" onclick="document.getElementById('tag-input').focus()">
+              <input class="tag-input" id="tag-input" placeholder="Type and press Enter..." />
+            </div>
+            <div class="hint">Press Enter to add a tag</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Source & Target -->
+      <div class="card">
+        <div class="card-title">🔄 Source & Target <span>— DataSource configuration</span></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Source</div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Source Path <span class="required">*</span></label>
+              <input type="text" id="f-src-path" placeholder="s3://bucket/prefix/" />
+            </div>
+            <div class="field-group">
+              <label>Source Format</label>
+              <select id="f-src-format">
+                <option value="parquet">Parquet</option>
+                <option value="delta">Delta</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Target</div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Target Path <span class="required">*</span></label>
+              <input type="text" id="f-tgt-path" placeholder="s3://bucket/output/" />
+            </div>
+            <div class="field-group">
+              <label>Target Format</label>
+              <select id="f-tgt-format">
+                <option value="delta">Delta</option>
+                <option value="parquet">Parquet</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Write Mode</label>
+            <select id="f-tgt-mode">
+              <option value="overwrite">Overwrite</option>
+              <option value="append">Append</option>
+              <option value="merge">Merge</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acceptance Criteria -->
+      <div class="card">
+        <div class="card-title">✅ Acceptance Criteria <span>— optional but recommended</span></div>
+        <div class="criteria-list" id="criteria-list">
+          <div class="criteria-item">
+            <input type="text" placeholder="e.g. Row count matches source" />
+            <button onclick="removeCriteria(this)" title="Remove">×</button>
+          </div>
+        </div>
+        <button class="add-btn" onclick="addCriteria()" style="margin-top:10px">+ Add criterion</button>
+      </div>
+
+      <!-- Submit -->
+      <div class="card">
+        <div class="dry-row" style="margin-bottom:14px">
+          <div class="toggle-label" style="font-size:13px">Dry Run Mode</div>
+          <label class="toggle"><input type="checkbox" id="f-dryrun" /><span class="slider"></span></label>
+          <span class="dry-badge" id="dry-badge" style="display:none">DRY RUN</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px" id="dry-hint">
+          Full run: parses story → generates code → runs tests → creates GitHub PR → uploads to S3.
+        </div>
+        <button class="submit-btn" id="submit-btn" onclick="submitStory()">
+          ⚡ Submit Story
+        </button>
+        <div id="submit-error" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-panel">
+      <div class="status-card">
+        <div class="status-header">
+          <div class="title">Pipeline Status</div>
+          <div id="status-badge"></div>
+        </div>
+        <div id="status-body">
+          <div class="empty-state">Submit a story to see the pipeline run here</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+const tags = [];
+let pollTimer = null;
+const history = [];
+
+const STAGES = [
+  { key: 'parse_story',    label: 'Parsing Story',      status: 'PARSING' },
+  { key: 'generate_code',  label: 'Generating Code',    status: 'CODING' },
+  { key: 'run_tests',      label: 'Running Tests',      status: 'TESTING' },
+  { key: 'approval_gate',  label: 'Approval Gate',      status: 'PR_CREATING' },
+  { key: 'create_pr',      label: 'Creating GitHub PR', status: 'PR_CREATING' },
+  { key: 'deploy',         label: 'Uploading to S3',    status: 'DEPLOYING' },
+  { key: 'dry_run_end',    label: 'Dry Run Complete',   status: 'DRY_RUN_COMPLETE' },
+];
+
+// ── Config helpers ─────────────────────────────────────────────────
+const endpoint = () => document.getElementById('cfg-endpoint').value.trim().replace(/\/$/, '');
+const apiKey   = () => document.getElementById('cfg-apikey').value.trim();
+const headers  = () => ({ 'Content-Type': 'application/json', 'X-API-Key': apiKey() });
+
+// Persist config
+['cfg-endpoint','cfg-apikey'].forEach(id => {
+  const el = document.getElementById(id);
+  el.value = localStorage.getItem(id) || '';
+  el.addEventListener('input', () => localStorage.setItem(id, el.value));
+});
+
+// ── Health check ───────────────────────────────────────────────────
+async function checkHealth() {
+  const el = document.getElementById('api-status');
+  el.innerHTML = '⏳ Checking…';
+  try {
+    const r = await fetch(`${endpoint()}/api/v1/health`);
+    const d = await r.json();
+    if (d.status === 'ok') {
+      el.innerHTML = `<span style="color:var(--success)">✓ Connected (v${d.version})</span>`;
+    } else {
+      el.innerHTML = `<span style="color:var(--error)">✗ Unexpected response</span>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--error)">✗ Cannot reach API</span>`;
+  }
+}
+
+// ── Tags ───────────────────────────────────────────────────────────
+document.getElementById('tag-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/, '');
+    if (val && !tags.includes(val)) { tags.push(val); renderTags(); }
+    e.target.value = '';
+  }
+  if (e.key === 'Backspace' && !e.target.value) { tags.pop(); renderTags(); }
+});
+
+function renderTags() {
+  const w = document.getElementById('tag-wrapper');
+  w.querySelectorAll('.tag').forEach(t => t.remove());
+  const input = document.getElementById('tag-input');
+  tags.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'tag';
+    el.innerHTML = `${t}<button onclick="removeTag(${i})">×</button>`;
+    w.insertBefore(el, input);
+  });
+}
+function removeTag(i) { tags.splice(i, 1); renderTags(); }
+
+// ── Dry run toggle ─────────────────────────────────────────────────
+document.getElementById('f-dryrun').addEventListener('change', e => {
+  const isDry = e.target.checked;
+  document.getElementById('dry-badge').style.display = isDry ? '' : 'none';
+  document.getElementById('dry-hint').textContent = isDry
+    ? 'Dry run: parses story → generates code only. No PR or S3 upload.'
+    : 'Full run: parses story → generates code → runs tests → creates GitHub PR → uploads to S3.';
+  document.getElementById('submit-btn').textContent = isDry ? '🧪 Submit Dry Run' : '⚡ Submit Story';
+});
+
+// ── Criteria ───────────────────────────────────────────────────────
+function addCriteria() {
+  const list = document.getElementById('criteria-list');
+  const item = document.createElement('div');
+  item.className = 'criteria-item';
+  item.innerHTML = `<input type="text" placeholder="e.g. No null values in customer_id" /><button onclick="removeCriteria(this)" title="Remove">×</button>`;
+  list.appendChild(item);
+}
+function removeCriteria(btn) {
+  const list = document.getElementById('criteria-list');
+  if (list.children.length > 1) btn.closest('.criteria-item').remove();
+  else btn.closest('.criteria-item').querySelector('input').value = '';
+}
+
+// ── Validate ───────────────────────────────────────────────────────
+function validate() {
+  const errors = [];
+  if (!endpoint()) errors.push('API Endpoint is required (set in sidebar)');
+  if (!apiKey())   errors.push('API Key is required (set in sidebar)');
+  const id = document.getElementById('f-id').value.trim();
+  if (!id) errors.push('Story ID is required');
+  else if (!/^[\w\-\.]+$/.test(id)) errors.push('Story ID: only letters, numbers, hyphens, dots');
+  if (!document.getElementById('f-title').value.trim()) errors.push('Title is required');
+  if (!document.getElementById('f-description').value.trim()) errors.push('Description is required');
+  if (!document.getElementById('f-src-path').value.trim()) errors.push('Source Path is required');
+  if (!document.getElementById('f-tgt-path').value.trim()) errors.push('Target Path is required');
+  return errors;
+}
+
+// ── Submit ─────────────────────────────────────────────────────────
+async function submitStory() {
+  const errEl = document.getElementById('submit-error');
+  errEl.innerHTML = '';
+
+  const errs = validate();
+  if (errs.length) {
+    errEl.innerHTML = `<div class="error-box">${errs.map(e => `• ${e}`).join('<br>')}</div>`;
+    return;
+  }
+
+  const criteria = [...document.querySelectorAll('#criteria-list input')]
+    .map(i => i.value.trim()).filter(Boolean);
+
+  const payload = {
+    id: document.getElementById('f-id').value.trim(),
+    title: document.getElementById('f-title').value.trim(),
+    description: document.getElementById('f-description').value.trim(),
+    source: { path: document.getElementById('f-src-path').value.trim(), format: document.getElementById('f-src-format').value },
+    target: { path: document.getElementById('f-tgt-path').value.trim(), format: document.getElementById('f-tgt-format').value, mode: document.getElementById('f-tgt-mode').value },
+    acceptance_criteria: criteria,
+    tags,
+    data_classification: document.getElementById('f-classification').value,
+  };
+
+  const dryRun = document.getElementById('f-dryrun').checked;
+  const url = `${endpoint()}/api/v1/stories${dryRun ? '?dry_run=true' : ''}`;
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting…';
+
+  try {
+    const res = await fetch(url, { method: 'POST', headers: headers(), body: JSON.stringify(payload) });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const detail = data.detail ? JSON.stringify(data.detail, null, 2) : JSON.stringify(data);
+      errEl.innerHTML = `<div class="error-box">API Error ${res.status}:<br><pre style="white-space:pre-wrap;font-size:11px">${detail}</pre></div>`;
+      btn.disabled = false;
+      btn.textContent = dryRun ? '🧪 Submit Dry Run' : '⚡ Submit Story';
+      return;
+    }
+
+    const runId = data.run_id;
+    addHistory({ runId, storyId: payload.id, title: payload.title, dryRun, status: 'PENDING' });
+    showStatusPanel(runId, payload.title, dryRun);
+    startPolling(runId, dryRun);
+
+    btn.disabled = false;
+    btn.textContent = dryRun ? '🧪 Submit Dry Run' : '⚡ Submit Story';
+  } catch(e) {
+    errEl.innerHTML = `<div class="error-box">Network error: ${e.message}</div>`;
+    btn.disabled = false;
+    btn.textContent = dryRun ? '🧪 Submit Dry Run' : '⚡ Submit Story';
+  }
+}
+
+// ── Polling ────────────────────────────────────────────────────────
+function startPolling(runId, dryRun) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollRun(runId, dryRun), 5000);
+  pollRun(runId, dryRun);
+}
+
+async function pollRun(runId, dryRun) {
+  try {
+    const res = await fetch(`${endpoint()}/api/v1/runs/${runId}`, { headers: { 'X-API-Key': apiKey() } });
+    const data = await res.json();
+    renderStatus(data, dryRun);
+    updateHistory(runId, data.status);
+    const terminal = ['DONE','FAILED','DRY_RUN_COMPLETE'];
+    if (terminal.includes(data.status)) { clearInterval(pollTimer); pollTimer = null; }
+  } catch(e) { /* network blip, retry next tick */ }
+}
+
+// ── Status rendering ───────────────────────────────────────────────
+function showStatusPanel(runId, title, dryRun) {
+  document.getElementById('status-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;word-break:break-all">
+      Run ID: <code style="color:var(--text)">${runId}</code>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar" style="width:5%"></div></div>
+    <div class="stage-list" id="stage-list"></div>
+    <div id="result-details"></div>
+  `;
+}
+
+function renderStatus(data, dryRun) {
+  const { status, current_stage, github_pr_url, s3_artifact_url, error_message, test_results } = data;
+
+  // Badge
+  const badgeMap = {
+    DONE: ['badge-done','✓ Done'], FAILED: ['badge-failed','✗ Failed'],
+    DRY_RUN_COMPLETE: ['badge-dry','✓ Dry Run Complete'],
+    PENDING:['badge-pending','● Pending'],
+  };
+  const [bc, bt] = badgeMap[status] || ['badge-running', `⟳ ${status}`];
+  document.getElementById('status-badge').innerHTML = `<span class="badge ${bc}">${bt}</span>`;
+
+  const stages = dryRun
+    ? STAGES.filter(s => ['parse_story','generate_code','dry_run_end'].includes(s.key))
+    : STAGES.filter(s => s.key !== 'dry_run_end');
+
+  const terminalStatuses = ['DONE','FAILED','DRY_RUN_COMPLETE'];
+  const isDone = terminalStatuses.includes(status);
+  const stageKeys = stages.map(s => s.key);
+  const currentIdx = stageKeys.indexOf(current_stage);
+
+  // Progress
+  let pct = 5;
+  if (isDone && status !== 'FAILED') pct = 100;
+  else if (currentIdx >= 0) pct = Math.round(((currentIdx + 0.5) / stages.length) * 100);
+  const bar = document.getElementById('prog-bar');
+  if (bar) {
+    bar.style.width = pct + '%';
+    bar.style.background = status === 'FAILED' ? 'var(--error)' : status === 'DRY_RUN_COMPLETE' ? 'var(--warning)' : 'var(--accent2)';
+  }
+
+  // Stage list
+  const sl = document.getElementById('stage-list');
+  if (!sl) return;
+  sl.innerHTML = stages.map((s, i) => {
+    let cls = '', icon = '';
+    if (status === 'FAILED' && i === currentIdx) { cls = 'fail'; icon = '✗'; }
+    else if (isDone || i < currentIdx) { cls = 'done'; icon = '✓'; }
+    else if (i === currentIdx) { cls = 'active'; icon = '…'; }
+    else { icon = '○'; }
+    return `<div class="stage-item">
+      <div class="stage-icon ${cls}">${icon}</div>
+      <span class="stage-name ${cls}">${s.label}</span>
+    </div>`;
+  }).join('');
+
+  // Result details
+  const det = document.getElementById('result-details');
+  if (!det) return;
+  let html = '';
+
+  if (test_results) {
+    const { passed, passed_tests, total_tests, coverage_pct } = test_results;
+    html += `<div class="result-row"><div class="rl">Test Results</div>
+      <div class="test-results">
+        <div class="tr-row"><span>Tests</span><span>${passed_tests}/${total_tests} passed</span></div>
+        <div class="tr-row"><span>Coverage</span><span>${coverage_pct?.toFixed(0)}%</span></div>
+        <div class="tr-row"><span>Status</span><span style="color:${passed?'#86efac':'#fca5a5'}">${passed?'✓ All Passed':'✗ Some Failed'}</span></div>
+      </div>
+    </div>`;
+  }
+
+  if (github_pr_url) {
+    html += `<div class="result-row"><div class="rl">GitHub Pull Request</div>
+      <div class="rv"><a href="${github_pr_url}" target="_blank">🔗 ${github_pr_url.replace('https://github.com/','')}</a></div></div>`;
+  }
+
+  if (s3_artifact_url) {
+    html += `<div class="result-row"><div class="rl">S3 Artifact</div>
+      <div class="rv" style="font-family:monospace;font-size:11px">📦 ${s3_artifact_url}</div></div>`;
+  }
+
+  if (error_message) {
+    html += `<div class="error-box" style="margin-top:12px">⚠️ ${error_message}</div>`;
+  }
+
+  det.innerHTML = html;
+}
+
+// ── History ────────────────────────────────────────────────────────
+function addHistory(item) {
+  history.unshift(item);
+  renderHistory();
+}
+function updateHistory(runId, status) {
+  const item = history.find(h => h.runId === runId);
+  if (item) { item.status = status; renderHistory(); }
+}
+function renderHistory() {
+  const el = document.getElementById('run-history');
+  if (!history.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">No runs yet</div>'; return; }
+  const badgeMap = {
+    DONE:['badge-done','Done'], FAILED:['badge-failed','Failed'],
+    DRY_RUN_COMPLETE:['badge-dry','Dry Run ✓'],
+    PENDING:['badge-pending','Pending'],
+  };
+  el.innerHTML = history.map(h => {
+    const [bc, bt] = badgeMap[h.status] || ['badge-running', h.status];
+    return `<div class="history-item" onclick="loadRun('${h.runId}', ${h.dryRun})">
+      <div class="h-story">${h.title}</div>
+      <div class="h-meta">
+        <span style="color:var(--text-muted)">${h.storyId}</span>
+        <span class="badge ${bc}">${bt}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function loadRun(runId, dryRun) {
+  showStatusPanel(runId, '', dryRun);
+  pollRun(runId, dryRun);
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollRun(runId, dryRun), 5000);
+}
+</script>
+</body>
+</html>

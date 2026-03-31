@@ -189,3 +189,18 @@ resource "aws_vpc_endpoint" "secrets" {
 
   tags = { Name = "${var.project_name}-secrets-endpoint", Project = var.project_name }
 }
+
+# Glue interface endpoint — ECS tasks run in private subnets with no direct
+# internet route. Without this endpoint every boto3.client("glue") call from a
+# container routes through the NAT Gateway. The existing security group already
+# allows HTTPS inbound from ecs_tasks so no security group changes are needed.
+resource "aws_vpc_endpoint" "glue" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.glue"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = { Name = "${var.project_name}-glue-endpoint", Project = var.project_name }
+}

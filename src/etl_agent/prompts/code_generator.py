@@ -1,5 +1,7 @@
 """Prompt templates for the Coding Agent."""
 
+from typing import Any
+
 from etl_agent.core.models import ETLSpec, TestResult
 from etl_agent.prompts.examples.code_gen_examples import CODE_GEN_EXAMPLES
 
@@ -8,6 +10,7 @@ def build_code_generator_prompt(
     etl_spec: ETLSpec,
     previous_failure: TestResult | None = None,
     retry_count: int = 0,
+    source_schema: dict[str, Any] | None = None,
 ) -> str:
     retry_context = ""
     if previous_failure and retry_count > 0:
@@ -21,6 +24,30 @@ Test output (last 1000 chars):
 {previous_failure.output[-1000:]}
 ```
 Please fix these specific failures in your new version.
+"""
+
+    # Build grounded schema section from inferred S3 metadata
+    if source_schema and source_schema.get("columns"):
+        columns = source_schema["columns"]
+        col_lines = "\n".join(f"  - {c['name']}: {c['type']}" for c in columns)
+        sample_key = source_schema.get("sample_key", source_schema.get("source", ""))
+        schema_section = f"""
+## Actual Source Schema (inferred from {sample_key})
+The following column names and types were read directly from the source data.
+You MUST use these exact column names in your PySpark code — do not invent or
+rename columns. If a transformation requires a column not listed here, add a
+comment explaining the assumption.
+
+Columns ({len(columns)} total):
+{col_lines}
+"""
+    else:
+        schema_section = """
+## Source Schema
+No schema could be inferred from S3 (bucket may be empty or format unsupported).
+Generate code using reasonable assumptions based on the pipeline description and
+operations. Add a comment at the top of the file noting that column names are
+assumed and should be verified against actual source data.
 """
 
     examples_text = "\n\n".join(
@@ -49,7 +76,7 @@ for the following ETL specification. Follow enterprise best practices strictly.
 - Source: {etl_spec.source.path} ({etl_spec.source.format})
 - Target: {etl_spec.target.path} ({etl_spec.target.format})
 - Transformations: {[t.model_dump() for t in etl_spec.transformations]}
-{retry_context}
+{schema_section}{retry_context}
 ## Few-Shot Examples
 {examples_text}
 

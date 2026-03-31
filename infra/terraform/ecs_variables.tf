@@ -141,3 +141,11 @@ variable "alarm_sns_topic_arn" {
   type        = string
   default     = ""
 }
+
+# ─── Glue ─────────────────────────────────────────────────────────────────────
+
+variable "glue_catalog_database" {
+  description = "Name of the AWS Glue catalog database used as the ETL Agent data model"
+  type        = string
+  default     = "etl_agent_catalog"
+}

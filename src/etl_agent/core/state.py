@@ -33,6 +33,7 @@ class GraphState(TypedDict, total=False):
     # Agent outputs
     etl_spec: ETLSpec | None
     user_story: UserStory | None  # alias populated by story_parser (same as "story")
+    source_schema: dict[str, Any] | None  # inferred from S3 parquet/delta before codegen
     generated_code: str | None
     generated_tests: str | None
     generated_readme: str | None

@@ -107,6 +107,7 @@ class CodingAgent(ReactAgent):
                 etl_spec=etl_spec,
                 previous_failure=previous_failure,
                 retry_count=retry_count,
+                source_schema=state.get("source_schema"),
             )
 
             raw_response = await self.react_llm_loop(
