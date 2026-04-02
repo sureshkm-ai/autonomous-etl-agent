@@ -419,6 +419,9 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+glue = [
+    { name = "mypy-boto3-glue" },
+]
 s3 = [
     { name = "mypy-boto3-s3" },
 ]
@@ -928,7 +931,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["s3"] },
+    { name = "boto3-stubs", extra = ["glue", "s3"] },
     { name = "fakeredis" },
     { name = "jupyter" },
     { name = "mypy" },
@@ -944,7 +947,7 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["s3"] },
+    { name = "boto3-stubs", extra = ["glue", "s3"] },
     { name = "fakeredis" },
     { name = "jupyter" },
     { name = "mypy" },
@@ -965,7 +968,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.40.0" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "boto3", specifier = ">=1.35.0" },
-    { name = "boto3-stubs", extras = ["s3"], marker = "extra == 'dev'", specifier = ">=1.35.0" },
+    { name = "boto3-stubs", extras = ["s3", "glue"], marker = "extra == 'dev'", specifier = ">=1.35.0" },
     { name = "build", specifier = ">=1.2.0" },
     { name = "delta-spark", specifier = ">=3.2.0,<4.0.0" },
     { name = "fakeredis", marker = "extra == 'dev'", specifier = ">=2.26.0" },
@@ -1014,7 +1017,7 @@ provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.35.0" },
+    { name = "boto3-stubs", extras = ["s3", "glue"], specifier = ">=1.35.0" },
     { name = "fakeredis", specifier = ">=2.26.0" },
     { name = "jupyter", specifier = ">=1.1.0" },
     { name = "mypy", specifier = ">=1.13.0" },
@@ -2302,6 +2305,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/da/5055c63e377c5c2418760411fd6a63ee2b96cf95397259038756c042574f/mypy-1.19.1-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:481daf36a4c443332e2ae9c137dfee878fcea781a2e3f895d54bd3002a900957", size = 13807476, upload-time = "2025-12-15T05:03:17.977Z" },
     { url = "https://files.pythonhosted.org/packages/cd/09/4ebd873390a063176f06b0dbf1f7783dd87bd120eae7727fa4ae4179b685/mypy-1.19.1-cp314-cp314-win_amd64.whl", hash = "sha256:8bb5c6f6d043655e055be9b542aa5f3bdd30e4f3589163e85f93f3640060509f", size = 10281872, upload-time = "2025-12-15T05:03:05.549Z" },
     { url = "https://files.pythonhosted.org/packages/8d/f4/4ce9a05ce5ded1de3ec1c1d96cf9f9504a04e54ce0ed55cfa38619a32b8d/mypy-1.19.1-py3-none-any.whl", hash = "sha256:f1235f5ea01b7db5468d53ece6aaddf1ad0b88d9e7462b86ef96fe04995d7247", size = 2471239, upload-time = "2025-12-15T05:03:07.248Z" },
+]
+
+[[package]]
+name = "mypy-boto3-glue"
+version = "1.42.70"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/49/752d2592f170b1daf66f2855112d85c92d40233fb397e97135fa5e2a127b/mypy_boto3_glue-1.42.70.tar.gz", hash = "sha256:d4b7422c82fda251fd0e2645b16ba539a16a73c504f6d2bff9c0e2097a216054", size = 139704, upload-time = "2026-03-17T20:05:08.659Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/48/a49f4658ea9ace66773a91cbae06b842df76cbbaa27a1c9bd9dcdec4f6fd/mypy_boto3_glue-1.42.70-py3-none-any.whl", hash = "sha256:8acaf460ad43bbef96e98370eef3eca7f32bd0928bca5e2be44f2699132fc957", size = 141265, upload-time = "2026-03-17T20:05:03.158Z" },
 ]
 
 [[package]]

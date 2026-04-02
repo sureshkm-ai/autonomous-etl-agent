@@ -122,10 +122,11 @@ class TestStoryYamlParsing:
         assert minimal_user_story.acceptance_criteria == []
 
     @pytest.mark.unit
-    def test_invalid_story_missing_source(self) -> None:
+    def test_story_without_source_is_valid(self) -> None:
         data = yaml.safe_load(INVALID_STORY_YAML)
-        with pytest.raises(ValueError):
-            UserStory(**data)
+        story = UserStory(**data)
+        assert story.source is None
+        assert story.target is None
 
     @pytest.mark.unit
     def test_story_tags_default_to_empty_list(self, minimal_user_story: UserStory) -> None:
