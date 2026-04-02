@@ -55,25 +55,12 @@ resource "aws_iam_role_policy" "glue_crawler_s3" {
   })
 }
 
-resource "aws_iam_role_policy" "glue_crawler_catalog" {
-  name = "glue-catalog-write"
-  role = aws_iam_role.glue_crawler.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        # CreateTable + UpdateTable only — no CreateDatabase (Terraform owns DB lifecycle)
-        Effect = "Allow"
-        Action = ["glue:CreateTable", "glue:UpdateTable"]
-        Resource = [
-          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
-          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.glue_catalog_database}",
-          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.glue_catalog_database}/*",
-        ]
-      }
-    ]
-  })
+# AWSGlueServiceRole covers all Glue catalog actions (GetDatabase, GetTable,
+# GetTables, CreateTable, UpdateTable, BatchCreatePartition, etc.) plus
+# CloudWatch Logs — eliminating the need for separate inline policies for each.
+resource "aws_iam_role_policy_attachment" "glue_crawler_service_role" {
+  role       = aws_iam_role.glue_crawler.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
 # ─── Glue Crawler ─────────────────────────────────────────────────────────────
@@ -83,17 +70,15 @@ resource "aws_glue_crawler" "olist" {
   role          = aws_iam_role.glue_crawler.arn
   database_name = aws_glue_catalog_database.etl_agent_catalog.name
 
-  s3_target {
-    path = "s3://${var.s3_bucket}/olist/"
-  }
-
-  # One Glue table per S3 sub-prefix (one per Olist CSV folder)
-  configuration = jsonencode({
-    Version = 1.0
-    Grouping = {
-      TableGroupingPolicy = "CombineCompatibleSchemas"
-    }
-  })
+  s3_target { path = "s3://${var.s3_bucket}/olist/orders/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/order_items/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/order_payments/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/order_reviews/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/customers/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/sellers/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/products/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/geolocation/" }
+  s3_target { path = "s3://${var.s3_bucket}/olist/product_category_translation/" }
 
   schema_change_policy {
     update_behavior = "UPDATE_IN_DATABASE"
