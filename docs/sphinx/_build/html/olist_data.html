@@ -1,0 +1,1215 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Olist Dataset &mdash; Autonomous ETL Agent — Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Agents" href="agents.html" />
+    <link rel="prev" title="Docker Setup" href="docker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Autonomous ETL Agent
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws_services.html">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#multi-stage-build">Multi-Stage Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#environment-variables-set-in-image">Environment Variables Set in Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#health-check">Health Check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#default-cmd-vs-worker-cmd">Default CMD vs Worker CMD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-compose-local-development">Docker Compose (Local Development)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#services">Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#build-the-image-manually">Build the Image Manually</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#run-the-api-container-locally-without-compose">Run the API Container Locally (without Compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#push-to-ecr-cd-pipeline-does-this-automatically">Push to ECR (CD pipeline does this automatically)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dataset-tables">Dataset Tables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#orders">orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#order-items">order_items</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#order-payments">order_payments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#order-reviews">order_reviews</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#customers">customers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sellers">sellers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#products">products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#geolocation">geolocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#product-category-translation">product_category_translation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="orchestration.html#graceful-shutdown">Graceful Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-health"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-stories"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/stories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs-run-id"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs/{run_id}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-runs-run-id-approve"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/runs/{run_id}/approve</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#put-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#delete-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Autonomous ETL Agent</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Olist Dataset</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/olist_data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="olist-dataset">
+<h1>Olist Dataset<a class="headerlink" href="#olist-dataset" title="Link to this heading"></a></h1>
+<section id="what-is-olist">
+<h2>What is Olist?<a class="headerlink" href="#what-is-olist" title="Link to this heading"></a></h2>
+<p>Olist is a Brazilian e-commerce marketplace connector that links small businesses to large
+retail channels. The <a class="reference external" href="https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce">Brazilian E-Commerce Public Dataset by Olist</a> is a publicly available
+dataset on Kaggle containing anonymised order, customer, seller, product, and review
+data from 2016 to 2018.</p>
+<p>This dataset is used as the source data for all pipeline runs in this project. It provides
+a realistic, multi-table relational dataset that exercises JOINs, aggregations, null
+handling, date parsing, and other common ETL operations.</p>
+</section>
+<section id="dataset-tables">
+<h2>Dataset Tables<a class="headerlink" href="#dataset-tables" title="Link to this heading"></a></h2>
+<p>The dataset consists of 9 CSV files, each uploaded to a dedicated S3 prefix under
+<code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/</span></code> and registered as a separate table in the AWS Glue
+Data Catalog.</p>
+<section id="orders">
+<h3>orders<a class="headerlink" href="#orders" title="Link to this heading"></a></h3>
+<p>The central fact table. One row per order.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 12.0%" />
+<col style="width: 53.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>order_id</p></td>
+<td><p>string</p></td>
+<td><p>Unique order identifier (primary key)</p></td>
+</tr>
+<tr class="row-odd"><td><p>customer_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → customers</p></td>
+</tr>
+<tr class="row-even"><td><p>order_status</p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">created</span></code>, <code class="docutils literal notranslate"><span class="pre">approved</span></code>, <code class="docutils literal notranslate"><span class="pre">shipped</span></code>, <code class="docutils literal notranslate"><span class="pre">delivered</span></code>, <code class="docutils literal notranslate"><span class="pre">canceled</span></code>, <code class="docutils literal notranslate"><span class="pre">unavailable</span></code>, <code class="docutils literal notranslate"><span class="pre">invoiced</span></code>, <code class="docutils literal notranslate"><span class="pre">processing</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>order_purchase_timestamp</p></td>
+<td><p>string</p></td>
+<td><p>Timestamp when customer placed the order</p></td>
+</tr>
+<tr class="row-even"><td><p>order_approved_at</p></td>
+<td><p>string</p></td>
+<td><p>Timestamp of payment approval</p></td>
+</tr>
+<tr class="row-odd"><td><p>order_delivered_carrier_date</p></td>
+<td><p>string</p></td>
+<td><p>Timestamp when order was handed to carrier</p></td>
+</tr>
+<tr class="row-even"><td><p>order_delivered_customer_date</p></td>
+<td><p>string</p></td>
+<td><p>Actual delivery timestamp</p></td>
+</tr>
+<tr class="row-odd"><td><p>order_estimated_delivery_date</p></td>
+<td><p>string</p></td>
+<td><p>Estimated delivery timestamp shown to customer</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="order-items">
+<h3>order_items<a class="headerlink" href="#order-items" title="Link to this heading"></a></h3>
+<p>One row per item within an order. An order can have multiple items from different sellers.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>order_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → orders</p></td>
+</tr>
+<tr class="row-odd"><td><p>order_item_id</p></td>
+<td><p>int</p></td>
+<td><p>Sequential item number within the order (1, 2, 3 …)</p></td>
+</tr>
+<tr class="row-even"><td><p>product_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → products</p></td>
+</tr>
+<tr class="row-odd"><td><p>seller_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → sellers</p></td>
+</tr>
+<tr class="row-even"><td><p>shipping_limit_date</p></td>
+<td><p>string</p></td>
+<td><p>Deadline for the seller to ship</p></td>
+</tr>
+<tr class="row-odd"><td><p>price</p></td>
+<td><p>double</p></td>
+<td><p>Item price in BRL</p></td>
+</tr>
+<tr class="row-even"><td><p>freight_value</p></td>
+<td><p>double</p></td>
+<td><p>Freight cost charged for this item</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="order-payments">
+<h3>order_payments<a class="headerlink" href="#order-payments" title="Link to this heading"></a></h3>
+<p>One row per payment instalment. An order can be paid in multiple instalments or with
+multiple payment methods.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>order_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → orders</p></td>
+</tr>
+<tr class="row-odd"><td><p>payment_sequential</p></td>
+<td><p>int</p></td>
+<td><p>Payment sequence number (1 = first payment)</p></td>
+</tr>
+<tr class="row-even"><td><p>payment_type</p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">credit_card</span></code>, <code class="docutils literal notranslate"><span class="pre">boleto</span></code>, <code class="docutils literal notranslate"><span class="pre">voucher</span></code>, <code class="docutils literal notranslate"><span class="pre">debit_card</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>payment_installments</p></td>
+<td><p>int</p></td>
+<td><p>Number of instalments chosen</p></td>
+</tr>
+<tr class="row-even"><td><p>payment_value</p></td>
+<td><p>double</p></td>
+<td><p>Transaction value in BRL</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="order-reviews">
+<h3>order_reviews<a class="headerlink" href="#order-reviews" title="Link to this heading"></a></h3>
+<p>Customer satisfaction review submitted after delivery.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>review_id</p></td>
+<td><p>string</p></td>
+<td><p>Unique review identifier</p></td>
+</tr>
+<tr class="row-odd"><td><p>order_id</p></td>
+<td><p>string</p></td>
+<td><p>Foreign key → orders</p></td>
+</tr>
+<tr class="row-even"><td><p>review_score</p></td>
+<td><p>int</p></td>
+<td><p>1–5 star rating</p></td>
+</tr>
+<tr class="row-odd"><td><p>review_comment_title</p></td>
+<td><p>string</p></td>
+<td><p>Optional short title (Portuguese)</p></td>
+</tr>
+<tr class="row-even"><td><p>review_comment_message</p></td>
+<td><p>string</p></td>
+<td><p>Optional long message (Portuguese)</p></td>
+</tr>
+<tr class="row-odd"><td><p>review_creation_date</p></td>
+<td><p>string</p></td>
+<td><p>Timestamp when review was created</p></td>
+</tr>
+<tr class="row-even"><td><p>review_answer_timestamp</p></td>
+<td><p>string</p></td>
+<td><p>Timestamp when seller responded</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="customers">
+<h3>customers<a class="headerlink" href="#customers" title="Link to this heading"></a></h3>
+<p>One row per customer. Note that the same physical customer may appear multiple times
+with different <code class="docutils literal notranslate"><span class="pre">customer_id</span></code> values if they placed orders under different accounts.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>customer_id</p></td>
+<td><p>string</p></td>
+<td><p>Primary key (unique per order, not per person)</p></td>
+</tr>
+<tr class="row-odd"><td><p>customer_unique_id</p></td>
+<td><p>string</p></td>
+<td><p>Persistent ID that links multiple orders by the
+same person</p></td>
+</tr>
+<tr class="row-even"><td><p>customer_zip_code_prefix</p></td>
+<td><p>string</p></td>
+<td><p>5-digit postal code prefix</p></td>
+</tr>
+<tr class="row-odd"><td><p>customer_city</p></td>
+<td><p>string</p></td>
+<td><p>City name (Portuguese)</p></td>
+</tr>
+<tr class="row-even"><td><p>customer_state</p></td>
+<td><p>string</p></td>
+<td><p>2-letter Brazilian state abbreviation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sellers">
+<h3>sellers<a class="headerlink" href="#sellers" title="Link to this heading"></a></h3>
+<p>Seller (merchant) dimension table.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>seller_id</p></td>
+<td><p>string</p></td>
+<td><p>Unique seller identifier (primary key)</p></td>
+</tr>
+<tr class="row-odd"><td><p>seller_zip_code_prefix</p></td>
+<td><p>string</p></td>
+<td><p>5-digit postal code prefix</p></td>
+</tr>
+<tr class="row-even"><td><p>seller_city</p></td>
+<td><p>string</p></td>
+<td><p>City name</p></td>
+</tr>
+<tr class="row-odd"><td><p>seller_state</p></td>
+<td><p>string</p></td>
+<td><p>2-letter Brazilian state abbreviation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="products">
+<h3>products<a class="headerlink" href="#products" title="Link to this heading"></a></h3>
+<p>Product catalogue. Product names and descriptions are in Portuguese.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>product_id</p></td>
+<td><p>string</p></td>
+<td><p>Unique product identifier (primary key)</p></td>
+</tr>
+<tr class="row-odd"><td><p>product_category_name</p></td>
+<td><p>string</p></td>
+<td><p>Portuguese category name</p></td>
+</tr>
+<tr class="row-even"><td><p>product_name_lenght</p></td>
+<td><p>int</p></td>
+<td><p>Number of characters in product name</p></td>
+</tr>
+<tr class="row-odd"><td><p>product_description_lenght</p></td>
+<td><p>int</p></td>
+<td><p>Number of characters in description</p></td>
+</tr>
+<tr class="row-even"><td><p>product_photos_qty</p></td>
+<td><p>int</p></td>
+<td><p>Number of product photos</p></td>
+</tr>
+<tr class="row-odd"><td><p>product_weight_g</p></td>
+<td><p>double</p></td>
+<td><p>Weight in grams</p></td>
+</tr>
+<tr class="row-even"><td><p>product_length_cm</p></td>
+<td><p>double</p></td>
+<td><p>Length in centimetres</p></td>
+</tr>
+<tr class="row-odd"><td><p>product_height_cm</p></td>
+<td><p>double</p></td>
+<td><p>Height in centimetres</p></td>
+</tr>
+<tr class="row-even"><td><p>product_width_cm</p></td>
+<td><p>double</p></td>
+<td><p>Width in centimetres</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="geolocation">
+<h3>geolocation<a class="headerlink" href="#geolocation" title="Link to this heading"></a></h3>
+<p>Maps Brazilian ZIP code prefixes to geographic coordinates. Contains multiple rows
+per ZIP prefix (different lat/lon measurements). ~1 million rows — the largest table.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 12.0%" />
+<col style="width: 53.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>geolocation_zip_code_prefix</p></td>
+<td><p>string</p></td>
+<td><p>5-digit postal code prefix</p></td>
+</tr>
+<tr class="row-odd"><td><p>geolocation_lat</p></td>
+<td><p>double</p></td>
+<td><p>Latitude</p></td>
+</tr>
+<tr class="row-even"><td><p>geolocation_lng</p></td>
+<td><p>double</p></td>
+<td><p>Longitude</p></td>
+</tr>
+<tr class="row-odd"><td><p>geolocation_city</p></td>
+<td><p>string</p></td>
+<td><p>City name</p></td>
+</tr>
+<tr class="row-even"><td><p>geolocation_state</p></td>
+<td><p>string</p></td>
+<td><p>2-letter state abbreviation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="product-category-translation">
+<h3>product_category_translation<a class="headerlink" href="#product-category-translation" title="Link to this heading"></a></h3>
+<p>Maps Portuguese product category names to English equivalents.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>product_category_name</p></td>
+<td><p>string</p></td>
+<td><p>Portuguese category name (foreign key → products)</p></td>
+</tr>
+<tr class="row-odd"><td><p>product_category_name_english</p></td>
+<td><p>string</p></td>
+<td><p>English translation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="entity-relationship">
+<h2>Entity Relationship<a class="headerlink" href="#entity-relationship" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        %%{init: {'theme': 'default', 'themeVariables': {'background': '#ffffff', 'lineColor': '#333333', 'primaryColor': '#B3D4FF', 'primaryTextColor': '#000000', 'primaryBorderColor': '#1A56BB', 'attributeBackgroundColorEven': '#f0f4ff', 'attributeBackgroundColorOdd': '#ffffff'}}}%%
+erDiagram
+    customers {
+        string customer_id PK
+        string customer_unique_id
+        string customer_zip_code_prefix FK
+        string customer_city
+        string customer_state
+    }
+    orders {
+        string order_id PK
+        string customer_id FK
+        string order_status
+        string order_purchase_timestamp
+        string order_delivered_customer_date
+        string order_estimated_delivery_date
+    }
+    order_items {
+        string order_id FK
+        int    order_item_id
+        string product_id FK
+        string seller_id FK
+        double price
+        double freight_value
+    }
+    order_payments {
+        string order_id FK
+        int    payment_sequential
+        string payment_type
+        int    payment_installments
+        double payment_value
+    }
+    order_reviews {
+        string review_id PK
+        string order_id FK
+        int    review_score
+        string review_creation_date
+    }
+    products {
+        string product_id PK
+        string product_category_name FK
+        double product_weight_g
+        double product_length_cm
+    }
+    sellers {
+        string seller_id PK
+        string seller_zip_code_prefix FK
+        string seller_city
+        string seller_state
+    }
+    geolocation {
+        string geolocation_zip_code_prefix PK
+        double geolocation_lat
+        double geolocation_lng
+        string geolocation_city
+        string geolocation_state
+    }
+    product_category_translation {
+        string product_category_name PK
+        string product_category_name_english
+    }
+
+    customers ||--o{ orders : &quot;places&quot;
+    orders ||--o{ order_items : &quot;contains&quot;
+    orders ||--o{ order_payments : &quot;paid via&quot;
+    orders ||--o{ order_reviews : &quot;reviewed in&quot;
+    order_items }o--|| products : &quot;references&quot;
+    order_items }o--|| sellers : &quot;fulfilled by&quot;
+    customers }o--|| geolocation : &quot;located in&quot;
+    sellers }o--|| geolocation : &quot;located in&quot;
+    products }o--o| product_category_translation : &quot;translated by&quot;
+    </pre></section>
+<section id="uploading-the-data-to-s3">
+<h2>Uploading the Data to S3<a class="headerlink" href="#uploading-the-data-to-s3" title="Link to this heading"></a></h2>
+<p>Download the dataset from Kaggle and upload each CSV to its corresponding S3 prefix:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Download from Kaggle (requires kaggle CLI: pip install kaggle)</span>
+kaggle<span class="w"> </span>datasets<span class="w"> </span>download<span class="w"> </span>olistbr/brazilian-ecommerce
+unzip<span class="w"> </span>brazilian-ecommerce.zip<span class="w"> </span>-d<span class="w"> </span>olist/
+
+<span class="c1"># Upload to S3 (replace bucket name as needed)</span>
+<span class="nv">BUCKET</span><span class="o">=</span>etl-agent-raw-prod
+
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_orders_dataset.csv<span class="w">              </span>s3://<span class="nv">$BUCKET</span>/olist/orders/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_order_items_dataset.csv<span class="w">         </span>s3://<span class="nv">$BUCKET</span>/olist/order_items/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_order_payments_dataset.csv<span class="w">      </span>s3://<span class="nv">$BUCKET</span>/olist/order_payments/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_order_reviews_dataset.csv<span class="w">       </span>s3://<span class="nv">$BUCKET</span>/olist/order_reviews/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_customers_dataset.csv<span class="w">           </span>s3://<span class="nv">$BUCKET</span>/olist/customers/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_sellers_dataset.csv<span class="w">             </span>s3://<span class="nv">$BUCKET</span>/olist/sellers/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_products_dataset.csv<span class="w">            </span>s3://<span class="nv">$BUCKET</span>/olist/products/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/olist_geolocation_dataset.csv<span class="w">         </span>s3://<span class="nv">$BUCKET</span>/olist/geolocation/
+aws<span class="w"> </span>s3<span class="w"> </span>cp<span class="w"> </span>olist/product_category_name_translation.csv<span class="w"> </span>s3://<span class="nv">$BUCKET</span>/olist/product_category_translation/
+</pre></div>
+</div>
+<p>After uploading, run the Glue Crawler to register the schemas:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>glue<span class="w"> </span>start-crawler<span class="w"> </span>--name<span class="w"> </span>etl-agent-olist-crawler
+
+<span class="c1"># Wait for completion (takes 1–3 minutes)</span>
+aws<span class="w"> </span>glue<span class="w"> </span>get-crawler<span class="w"> </span>--name<span class="w"> </span>etl-agent-olist-crawler<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--query<span class="w"> </span><span class="s1">&#39;Crawler.State&#39;</span><span class="w"> </span>--output<span class="w"> </span>text
+</pre></div>
+</div>
+<p>Once the crawler state returns <code class="docutils literal notranslate"><span class="pre">READY</span></code>, all 9 tables are registered in the
+<code class="docutils literal notranslate"><span class="pre">etl_agent_catalog</span></code> database and the agent can use them.</p>
+</section>
+<section id="sample-pipeline-stories">
+<h2>Sample Pipeline Stories<a class="headerlink" href="#sample-pipeline-stories" title="Link to this heading"></a></h2>
+<p>The following user stories are good starting points for testing the agent with this dataset:</p>
+<p><strong>Filter delivered orders</strong></p>
+<blockquote>
+<div><p>Title: <code class="docutils literal notranslate"><span class="pre">Filter</span> <span class="pre">Active</span> <span class="pre">Olist</span> <span class="pre">Orders</span></code></p>
+<p>Description: As a data analyst, I want to filter the Olist orders dataset to include only
+delivered orders, so that downstream revenue reports reflect completed transactions only.</p>
+<p>Acceptance Criteria:
+- Output contains only orders where order_status = ‘delivered’
+- Row count is greater than 0
+- No null values in order_id column</p>
+</div></blockquote>
+<p><strong>Revenue by seller</strong></p>
+<blockquote>
+<div><p>Title: <code class="docutils literal notranslate"><span class="pre">Calculate</span> <span class="pre">Revenue</span> <span class="pre">by</span> <span class="pre">Seller</span></code></p>
+<p>Description: Join order_items with orders to calculate total revenue per seller for
+delivered orders, excluding cancelled or unavailable orders.</p>
+<p>Acceptance Criteria:
+- Output has one row per seller_id
+- revenue column is the sum of price + freight_value
+- Only delivered orders are included
+- Output sorted by revenue descending</p>
+</div></blockquote>
+<p><strong>Customer RFM segmentation</strong></p>
+<blockquote>
+<div><p>Title: <code class="docutils literal notranslate"><span class="pre">Customer</span> <span class="pre">RFM</span> <span class="pre">Segmentation</span></code></p>
+<p>Description: Compute Recency, Frequency, and Monetary scores for each unique customer
+using the customer_unique_id from the customers table joined to orders and order_payments.</p>
+<p>Acceptance Criteria:
+- One row per customer_unique_id
+- recency_days = days since last order_purchase_timestamp
+- frequency = total number of distinct orders
+- monetary = total payment_value</p>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="docker.html" class="btn btn-neutral float-left" title="Docker Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="agents.html" class="btn btn-neutral float-right" title="Agents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Suresh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

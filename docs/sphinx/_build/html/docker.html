@@ -1,0 +1,467 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docker Setup &mdash; Autonomous ETL Agent — Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Olist Dataset" href="olist_data.html" />
+    <link rel="prev" title="AWS Services" href="aws_services.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Autonomous ETL Agent
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws_services.html">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#multi-stage-build">Multi-Stage Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#environment-variables-set-in-image">Environment Variables Set in Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#health-check">Health Check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#default-cmd-vs-worker-cmd">Default CMD vs Worker CMD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#docker-compose-local-development">Docker Compose (Local Development)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#services">Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#build-the-image-manually">Build the Image Manually</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#run-the-api-container-locally-without-compose">Run the API Container Locally (without Compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#push-to-ecr-cd-pipeline-does-this-automatically">Push to ECR (CD pipeline does this automatically)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="olist_data.html">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#dataset-tables">Dataset Tables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#orders">orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-items">order_items</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-payments">order_payments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-reviews">order_reviews</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#customers">customers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#sellers">sellers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#products">products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#geolocation">geolocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#product-category-translation">product_category_translation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="orchestration.html#graceful-shutdown">Graceful Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-health"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-stories"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/stories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs-run-id"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs/{run_id}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-runs-run-id-approve"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/runs/{run_id}/approve</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#put-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#delete-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Autonomous ETL Agent</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Docker Setup</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/docker.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="docker-setup">
+<h1>Docker Setup<a class="headerlink" href="#docker-setup" title="Link to this heading"></a></h1>
+<section id="docker-image">
+<h2>Docker Image<a class="headerlink" href="#docker-image" title="Link to this heading"></a></h2>
+<p>The project ships a single multi-stage <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> at <code class="docutils literal notranslate"><span class="pre">infra/Dockerfile</span></code>.
+One image serves both the API service (default <code class="docutils literal notranslate"><span class="pre">CMD</span></code>) and the worker service
+(<code class="docutils literal notranslate"><span class="pre">CMD</span></code> overridden in the ECS task definition).</p>
+<section id="multi-stage-build">
+<h3>Multi-Stage Build<a class="headerlink" href="#multi-stage-build" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt><strong>Stage 1 — builder</strong> (<code class="docutils literal notranslate"><span class="pre">python:3.12-slim</span></code>)</dt><dd><p>Installs <code class="docutils literal notranslate"><span class="pre">uv</span></code> (a fast pip replacement) and uses it to resolve and install all
+production Python dependencies into a virtual environment at <code class="docutils literal notranslate"><span class="pre">/app/.venv</span></code>.
+Only <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>, <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code>, and <code class="docutils literal notranslate"><span class="pre">README.md</span></code> are copied in this stage so that
+dependency installation is cached by Docker layer caching — changing application
+source code does not invalidate the dependency layer.</p>
+</dd>
+</dl>
+<div class="highlight-dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">builder</span>
+<span class="k">RUN</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span><span class="nv">uv</span><span class="o">==</span><span class="m">0</span>.4.29
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<span class="k">COPY</span><span class="w"> </span>pyproject.toml<span class="w"> </span>uv.lock*<span class="w"> </span>README.md<span class="w"> </span>./
+<span class="k">RUN</span><span class="w"> </span>uv<span class="w"> </span>venv<span class="w"> </span>.venv<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--frozen<span class="w"> </span>--no-dev
+</pre></div>
+</div>
+<dl class="simple">
+<dt><strong>Stage 2 — runtime</strong> (<code class="docutils literal notranslate"><span class="pre">python:3.12-slim</span></code>)</dt><dd><p>Installs only the OS packages needed at runtime (<code class="docutils literal notranslate"><span class="pre">curl</span></code> for the ECS health check,
+<code class="docutils literal notranslate"><span class="pre">openjdk-21-jre-headless</span></code> for PySpark, and <code class="docutils literal notranslate"><span class="pre">procps</span></code> for debugging via ECS Exec).
+The compiled venv is copied from the builder stage. Application source is copied
+fresh on every build. The container runs as a non-root user (<code class="docutils literal notranslate"><span class="pre">appuser</span></code>, UID 1001).</p>
+</dd>
+</dl>
+<div class="highlight-dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.12-slim</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">runtime</span>
+<span class="k">RUN</span><span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>curl<span class="w"> </span>procps<span class="w"> </span>openjdk-21-jre-headless
+<span class="k">ENV</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/usr/lib/jvm/java-21-openjdk-amd64
+<span class="k">RUN</span><span class="w"> </span>useradd<span class="w"> </span>--uid<span class="w"> </span><span class="m">1001</span><span class="w"> </span>--gid<span class="w"> </span>appgroup<span class="w"> </span>--no-create-home<span class="w"> </span>appuser
+<span class="k">COPY</span><span class="w"> </span>--from<span class="o">=</span>builder<span class="w"> </span>/app/.venv<span class="w"> </span>/app/.venv
+<span class="k">COPY</span><span class="w"> </span>src/<span class="w"> </span>./src/
+<span class="k">ENV</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;/app/.venv/bin:</span><span class="nv">$PATH</span><span class="s2">&quot;</span>
+<span class="k">ENV</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;/app/src&quot;</span>
+<span class="k">USER</span><span class="w"> </span><span class="s">appuser</span>
+</pre></div>
+</div>
+</section>
+<section id="environment-variables-set-in-image">
+<h3>Environment Variables Set in Image<a class="headerlink" href="#environment-variables-set-in-image" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Value / Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>JAVA_HOME</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/usr/lib/jvm/java-21-openjdk-amd64</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PATH</p></td>
+<td><p>Prepended with <code class="docutils literal notranslate"><span class="pre">$JAVA_HOME/bin</span></code> and <code class="docutils literal notranslate"><span class="pre">.venv/bin</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>PYTHONPATH</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/app/src</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PYTHONDONTWRITEBYTECODE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code> — no <code class="docutils literal notranslate"><span class="pre">.pyc</span></code> files written</p></td>
+</tr>
+<tr class="row-even"><td><p>PYTHONUNBUFFERED</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code> — stdout/stderr not buffered (important for logs)</p></td>
+</tr>
+<tr class="row-odd"><td><p>PYSPARK_SUBMIT_ARGS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--master</span> <span class="pre">local[*]</span> <span class="pre">pyspark-shell</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>SPARK_LOCAL_HOSTNAME</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">localhost</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>GIT_SHA</p></td>
+<td><p>Injected at build time via <code class="docutils literal notranslate"><span class="pre">--build-arg</span> <span class="pre">GIT_SHA</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="health-check">
+<h3>Health Check<a class="headerlink" href="#health-check" title="Link to this heading"></a></h3>
+<p>The image declares a <code class="docutils literal notranslate"><span class="pre">HEALTHCHECK</span></code> that polls <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">http://localhost:8000/api/v1/health</span></code>
+every 30 seconds (5 s timeout, 3 retries, 60 s start period). The ECS ALB health check
+is configured separately to the same endpoint. Worker containers have no HTTP port;
+ECS infers worker health from the process being alive.</p>
+</section>
+<section id="default-cmd-vs-worker-cmd">
+<h3>Default CMD vs Worker CMD<a class="headerlink" href="#default-cmd-vs-worker-cmd" title="Link to this heading"></a></h3>
+<div class="highlight-dockerfile notranslate"><div class="highlight"><pre><span></span><span class="c"># Default (API mode):</span>
+<span class="k">CMD</span><span class="w"> </span><span class="o">[</span><span class="s2">&quot;uvicorn&quot;</span>,<span class="w"> </span><span class="s2">&quot;etl_agent.api.main:app&quot;</span>,
+<span class="w">     </span><span class="s2">&quot;--host&quot;</span>,<span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span>,<span class="w"> </span><span class="s2">&quot;--port&quot;</span>,<span class="w"> </span><span class="s2">&quot;8000&quot;</span>,
+<span class="w">     </span><span class="s2">&quot;--workers&quot;</span>,<span class="w"> </span><span class="s2">&quot;2&quot;</span>,<span class="w"> </span><span class="s2">&quot;--log-level&quot;</span>,<span class="w"> </span><span class="s2">&quot;info&quot;</span><span class="o">]</span>
+</pre></div>
+</div>
+<p>The worker ECS task definition overrides this with:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;python&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-m&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;etl_agent.worker&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="docker-compose-local-development">
+<h2>Docker Compose (Local Development)<a class="headerlink" href="#docker-compose-local-development" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">infra/docker-compose.yml</span></code> defines a full local development stack with eight services.
+Run with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span>.env.example<span class="w"> </span>.env<span class="w">   </span><span class="c1"># fill in your values</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>infra/docker-compose.yml<span class="w"> </span>up<span class="w"> </span>-d
+</pre></div>
+</div>
+<section id="services">
+<h3>Services<a class="headerlink" href="#services" title="Link to this heading"></a></h3>
+<dl>
+<dt><strong>postgres</strong> (<code class="docutils literal notranslate"><span class="pre">postgres:16-alpine</span></code>)</dt><dd><p>Primary database. Initialised by <code class="docutils literal notranslate"><span class="pre">infra/postgres-init.sql</span></code> which creates the
+<code class="docutils literal notranslate"><span class="pre">etl_agent</span></code> and <code class="docutils literal notranslate"><span class="pre">airflow</span></code> schemas. Health check: <code class="docutils literal notranslate"><span class="pre">pg_isready</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>User</p></td>
+<td><p>etl_user</p></td>
+</tr>
+<tr class="row-odd"><td><p>Password</p></td>
+<td><p>etl_pass</p></td>
+</tr>
+<tr class="row-even"><td><p>Database</p></td>
+<td><p>etl_agent</p></td>
+</tr>
+<tr class="row-odd"><td><p>Port</p></td>
+<td><p>5432</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>redis</strong> (<code class="docutils literal notranslate"><span class="pre">redis:7-alpine</span></code>)</dt><dd><p>Used as the Celery broker for Airflow and as an optional LLM response cache.
+Exposed on port 6379.</p>
+</dd>
+<dt><strong>localstack</strong> (<code class="docutils literal notranslate"><span class="pre">localstack/localstack:3.8</span></code>)</dt><dd><p>Emulates S3, STS, and IAM locally so the application can run without real AWS
+credentials. Exposed on port 4566. Set <code class="docutils literal notranslate"><span class="pre">AWS_ENDPOINT_URL=http://localstack:4566</span></code>
+in <code class="docutils literal notranslate"><span class="pre">.env</span></code> to redirect boto3 calls here.</p>
+</dd>
+<dt><strong>app</strong> (built from <code class="docutils literal notranslate"><span class="pre">infra/Dockerfile</span></code>)</dt><dd><p>The FastAPI application in API mode, running against the local postgres and localstack.
+Exposed on port 8000. Depends on postgres, redis, and localstack being healthy.</p>
+</dd>
+<dt><strong>airflow-init</strong></dt><dd><p>One-shot service that runs <code class="docutils literal notranslate"><span class="pre">airflow</span> <span class="pre">db</span> <span class="pre">migrate</span></code> and creates the admin user.
+Runs only once; other Airflow services wait for it to complete successfully.</p>
+</dd>
+<dt><strong>airflow-webserver</strong> (<code class="docutils literal notranslate"><span class="pre">apache/airflow:2.10.0-python3.12</span></code>)</dt><dd><p>Airflow UI exposed on port 8080. Login: <code class="docutils literal notranslate"><span class="pre">admin</span> <span class="pre">/</span> <span class="pre">admin</span></code>.</p>
+</dd>
+<dt><strong>airflow-scheduler</strong></dt><dd><p>Airflow scheduler that parses and runs DAGs from <code class="docutils literal notranslate"><span class="pre">orchestration/airflow/dags/</span></code>.</p>
+</dd>
+<dt><strong>airflow-worker</strong></dt><dd><p>Celery worker that executes DAG tasks.</p>
+</dd>
+</dl>
+<p>All Airflow services share a common environment block (<code class="docutils literal notranslate"><span class="pre">x-airflow-common</span></code>) that points
+them at the local postgres for the backend database and Redis for the Celery broker.
+AWS calls from Airflow DAGs are redirected to LocalStack via <code class="docutils literal notranslate"><span class="pre">AWS_ENDPOINT_URL</span></code>.</p>
+</section>
+</section>
+<section id="build-the-image-manually">
+<h2>Build the Image Manually<a class="headerlink" href="#build-the-image-manually" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--file<span class="w"> </span>infra/Dockerfile<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--build-arg<span class="w"> </span><span class="nv">GIT_SHA</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--tag<span class="w"> </span>etl-agent-app:local<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>.
+</pre></div>
+</div>
+<section id="run-the-api-container-locally-without-compose">
+<h3>Run the API Container Locally (without Compose)<a class="headerlink" href="#run-the-api-container-locally-without-compose" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--env-file<span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>etl-agent-app:local
+</pre></div>
+</div>
+</section>
+<section id="push-to-ecr-cd-pipeline-does-this-automatically">
+<h3>Push to ECR (CD pipeline does this automatically)<a class="headerlink" href="#push-to-ecr-cd-pipeline-does-this-automatically" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>ecr<span class="w"> </span>get-login-password<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker<span class="w"> </span>login<span class="w"> </span>--username<span class="w"> </span>AWS<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--password-stdin<span class="w"> </span><span class="m">453711491609</span>.dkr.ecr.us-east-1.amazonaws.com
+
+docker<span class="w"> </span>tag<span class="w"> </span>etl-agent-app:local<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="m">453711491609</span>.dkr.ecr.us-east-1.amazonaws.com/etl-agent-app:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD<span class="k">)</span>
+
+docker<span class="w"> </span>push<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="m">453711491609</span>.dkr.ecr.us-east-1.amazonaws.com/etl-agent-app:<span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD<span class="k">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="aws_services.html" class="btn btn-neutral float-left" title="AWS Services" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="olist_data.html" class="btn btn-neutral float-right" title="Olist Dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Suresh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
