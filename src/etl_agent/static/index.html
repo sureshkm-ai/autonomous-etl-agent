@@ -217,7 +217,7 @@ function navigate(page, params = {}) {
 async function renderDashboard() {
   html('page', spinner('Loading runs…'));
   let runs = [];
-  try { runs = await api('/api/v1/runs'); } catch { /* no runs yet */ }
+  try { const res = await api('/api/v1/runs'); runs = res.runs ?? res; } catch { /* no runs yet */ }
 
   const done    = runs.filter(r => r.status === 'DONE').length;
   const failed  = runs.filter(r => r.status === 'FAILED').length;
