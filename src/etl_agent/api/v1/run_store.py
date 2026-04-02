@@ -92,7 +92,9 @@ def _build_update_values(kwargs: dict) -> dict:
         elif key == "completed_at":
             if isinstance(value, str):
                 try:
-                    values["completed_at"] = datetime.fromisoformat(value).replace(tzinfo=None)
+                    values["completed_at"] = datetime.fromisoformat(value).replace(
+                        tzinfo=None
+                    )
                 except ValueError:
                     values["completed_at"] = _utcnow()
             elif isinstance(value, datetime):
@@ -102,7 +104,9 @@ def _build_update_values(kwargs: dict) -> dict:
         elif key == "started_at":
             if isinstance(value, str):
                 try:
-                    values["started_at"] = datetime.fromisoformat(value).replace(tzinfo=None)
+                    values["started_at"] = datetime.fromisoformat(value).replace(
+                        tzinfo=None
+                    )
                 except ValueError:
                     values["started_at"] = _utcnow()
             elif isinstance(value, datetime):
@@ -138,9 +142,14 @@ def _build_update_values(kwargs: dict) -> dict:
         elif key == "data_classification":
             values["data_classification"] = str(value)
         elif key in {
-            "model_name", "prompt_template_version", "system_prompt_hash",
-            "task_prompt_hash", "token_steps_json", "lineage_snapshot_json",
-            "commit_sha", "artifact_checksum",
+            "model_name",
+            "prompt_template_version",
+            "system_prompt_hash",
+            "task_prompt_hash",
+            "token_steps_json",
+            "lineage_snapshot_json",
+            "commit_sha",
+            "artifact_checksum",
         }:
             values[key] = value
         elif key == "total_input_tokens":
@@ -272,7 +281,9 @@ def _record_to_dict(r: Any) -> dict[str, Any]:
         # Governance
         "approval_required": r.approval_required or False,
         "approver_actor": r.approver_actor,
-        "approval_timestamp": r.approval_timestamp.isoformat() if r.approval_timestamp else None,
+        "approval_timestamp": (
+            r.approval_timestamp.isoformat() if r.approval_timestamp else None
+        ),
         "approval_rationale": r.approval_rationale,
         "data_classification": r.data_classification or "internal",
         # LLM provenance

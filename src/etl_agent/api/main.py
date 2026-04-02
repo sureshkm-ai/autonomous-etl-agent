@@ -91,11 +91,12 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
     # API routers
     # ------------------------------------------------------------------
-    from etl_agent.api.v1 import health, runs, stories
+    from etl_agent.api.v1 import catalog, health, runs, stories
 
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
     app.include_router(stories.router, prefix="/api/v1", tags=["stories"])
     app.include_router(runs.router, prefix="/api/v1", tags=["runs"])
+    app.include_router(catalog.router, prefix="/api/v1", tags=["catalog"])
 
     # ------------------------------------------------------------------
     # Static UI

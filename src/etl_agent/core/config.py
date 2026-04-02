@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     aws_endpoint_url: str = ""  # LocalStack / custom endpoint; empty = real AWS
     aws_s3_artifacts_bucket: str = ""  # dedicated artifacts bucket (falls back to s3_bucket)
 
+    # ── Glue Data Catalog ─────────────────────────────────────────────────────
+    glue_catalog_database: str = "etl_agent_catalog"
+    output_data_bucket: str = ""  # e.g. "s3://etl-agent-processed-production/"
+
     # ── Misc ──────────────────────────────────────────────────────────────────
     debug: bool = False
     redis_url: str | None = None

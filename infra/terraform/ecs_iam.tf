@@ -164,14 +164,80 @@ resource "aws_iam_role_policy" "ecs_task_ecr" {
     Version = "2012-10-17"
     Statement = [
       {
+        # GetAuthorizationToken is an account-level API — Resource = "*" is required by AWS
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = "*"
+      },
+      {
+        # Repository-level actions scoped to the specific app repository
         Effect = "Allow"
         Action = [
-          "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
           "ecr:BatchGetImage",
         ]
-        Resource = "*"
+        Resource = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.project_name}-app"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_glue" {
+  name = "glue-catalog-access"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          # Read — used by DataCatalogClient.list_entities(), get_entity(), get_entity_by_path()
+          "glue:GetDatabase",
+          "glue:GetTable",
+          "glue:GetTables",
+          # Write — used by catalog admin API (POST/PUT/DELETE /api/v1/catalog)
+          "glue:CreateTable",
+          "glue:UpdateTable",
+          "glue:DeleteTable",
+          # No glue:CreateDatabase — Terraform owns the database lifecycle
+        ]
+        Resource = [
+          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.glue_catalog_database}",
+          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.glue_catalog_database}/*",
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_output_s3" {
+  name = "s3-output-bucket"
+  role = aws_iam_role.ecs_task.id
+
+  # Grants write access to the processed/output bucket (aws_s3_bucket.processed
+  # in main.tf). The existing ecs_task_s3 policy only covers var.s3_bucket (raw).
+  # Without this grant, pipelines writing to the processed bucket fail with
+  # AccessDenied at runtime.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectTagging",
+        ]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.processed.bucket}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket", "s3:GetBucketLocation"]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.processed.bucket}"
       }
     ]
   })

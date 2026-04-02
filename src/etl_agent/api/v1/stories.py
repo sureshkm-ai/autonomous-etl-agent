@@ -17,7 +17,7 @@ from fastapi import APIRouter, BackgroundTasks
 from etl_agent.core.audit import write_audit_event
 from etl_agent.core.config import get_settings
 from etl_agent.core.logging import get_logger
-from etl_agent.core.models import RunStatus, UserStory
+from etl_agent.core.models import RunStatus, UserStory, UserStoryRequest
 
 from .run_store import async_create_run, async_update_run
 
@@ -42,11 +42,11 @@ async def _persist_user_story(story: UserStory) -> None:
             story_id=story.id,
             title=story.title,
             description=story.description,
-            source_path=story.source.path,
-            source_format=story.source.format,
-            target_path=story.target.path,
-            target_format=story.target.format,
-            target_mode=story.target.mode,
+            source_path=story.source.path if story.source else None,
+            source_format=story.source.format if story.source else None,
+            target_path=story.target.path if story.target else None,
+            target_format=story.target.format if story.target else None,
+            target_mode=story.target.mode if story.target else None,
             data_classification=story.data_classification.value,
             tags=json.dumps(story.tags),
             raw_json=story.model_dump_json(),
@@ -101,7 +101,7 @@ def _publish_to_sqs(run_id: str, story: UserStory, dry_run: bool) -> None:
 
 @router.post("/stories", status_code=202)
 async def submit_story(
-    story: UserStory,
+    request: UserStoryRequest,
     background_tasks: BackgroundTasks,
     dry_run: bool = False,
 ) -> dict:
@@ -116,6 +116,16 @@ async def submit_story(
     """
     settings = get_settings()
     run_id = str(uuid4())
+
+    # Build the internal UserStory from the simplified request.
+    # source and target are None — the StoryParserAgent resolves them from
+    # the Glue catalog during the parse_story node.
+    story = UserStory(
+        id=str(uuid4()),
+        title=request.title,
+        description=request.description,
+        acceptance_criteria=request.acceptance_criteria,
+    )
 
     logger.info(
         "story_submitted",
@@ -142,8 +152,8 @@ async def submit_story(
             "title": story.title,
             "data_classification": story.data_classification.value,
             "tags": story.tags,
-            "source_path": story.source.path,
-            "target_path": story.target.path,
+            "source_path": story.source.path if story.source else None,
+            "target_path": story.target.path if story.target else None,
             "execution_mode": "sqs" if settings.use_sqs else "background_task",
         },
     )

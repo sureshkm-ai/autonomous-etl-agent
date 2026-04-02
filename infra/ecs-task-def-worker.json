@@ -37,6 +37,14 @@
         {
           "name": "JAVA_TOOL_OPTIONS",
           "value": "-Xmx4g -XX:+UseG1GC --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED"
+        },
+        {
+          "name": "GLUE_CATALOG_DATABASE",
+          "value": "etl_agent_catalog"
+        },
+        {
+          "name": "OUTPUT_DATA_BUCKET",
+          "value": "s3://etl-agent-processed-production/"
         }
       ],
       "secrets": [
