@@ -1,0 +1,673 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS Services &mdash; Autonomous ETL Agent — Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Docker Setup" href="docker.html" />
+    <link rel="prev" title="Architecture" href="architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Autonomous ETL Agent
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#multi-stage-build">Multi-Stage Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#environment-variables-set-in-image">Environment Variables Set in Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#health-check">Health Check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#default-cmd-vs-worker-cmd">Default CMD vs Worker CMD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-compose-local-development">Docker Compose (Local Development)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#services">Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#build-the-image-manually">Build the Image Manually</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#run-the-api-container-locally-without-compose">Run the API Container Locally (without Compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#push-to-ecr-cd-pipeline-does-this-automatically">Push to ECR (CD pipeline does this automatically)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="olist_data.html">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#dataset-tables">Dataset Tables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#orders">orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-items">order_items</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-payments">order_payments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-reviews">order_reviews</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#customers">customers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#sellers">sellers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#products">products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#geolocation">geolocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#product-category-translation">product_category_translation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="orchestration.html#graceful-shutdown">Graceful Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-health"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-stories"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/stories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs-run-id"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs/{run_id}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-runs-run-id-approve"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/runs/{run_id}/approve</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#put-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#delete-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Autonomous ETL Agent</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">AWS Services</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/aws_services.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aws-services">
+<h1>AWS Services<a class="headerlink" href="#aws-services" title="Link to this heading"></a></h1>
+<p>The platform uses the following AWS services, all provisioned by Terraform in
+<code class="docutils literal notranslate"><span class="pre">infra/terraform/</span></code>. Every resource is tagged with <code class="docutils literal notranslate"><span class="pre">Project=etl-agent</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Environment=production</span></code>.</p>
+<section id="vpc-networking">
+<h2>VPC &amp; Networking<a class="headerlink" href="#vpc-networking" title="Link to this heading"></a></h2>
+<dl>
+<dt><strong>VPC</strong> (<code class="docutils literal notranslate"><span class="pre">10.0.0.0/16</span></code>)</dt><dd><p>A dedicated VPC isolates all project resources. DNS hostnames and DNS support are enabled
+so ECS containers can resolve RDS and endpoint hostnames by DNS name.</p>
+</dd>
+<dt><strong>Public Subnets</strong> (×2, one per AZ)</dt><dd><p>The Application Load Balancer lives here. Tasks launched in public subnets receive a
+public IP, but ECS Fargate tasks are placed in private subnets instead.</p>
+</dd>
+<dt><strong>Private Subnets</strong> (×2, one per AZ)</dt><dd><p>ECS Fargate tasks and the RDS instance run here with no direct internet route. Outbound
+traffic exits via NAT Gateway.</p>
+</dd>
+<dt><strong>NAT Gateways</strong> (×2, one per AZ)</dt><dd><p>Each private subnet routes outbound internet traffic (Anthropic API, GitHub API) through
+a dedicated NAT Gateway + Elastic IP for high availability.</p>
+</dd>
+<dt><strong>Internet Gateway</strong></dt><dd><p>Provides inbound/outbound internet access for the public subnets (ALB).</p>
+</dd>
+<dt><strong>VPC Endpoints</strong></dt><dd><p>Interface and gateway endpoints route traffic to AWS services without traversing the
+public internet, reducing NAT Gateway data transfer costs:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>S3</p></td>
+<td><p>Gateway</p></td>
+<td><p>Read/write raw, processed, artifacts buckets</p></td>
+</tr>
+<tr class="row-odd"><td><p>SQS</p></td>
+<td><p>Interface</p></td>
+<td><p>API service publishes; worker consumes</p></td>
+</tr>
+<tr class="row-even"><td><p>ECR API</p></td>
+<td><p>Interface</p></td>
+<td><p>Pull task definition metadata</p></td>
+</tr>
+<tr class="row-odd"><td><p>ECR DKR</p></td>
+<td><p>Interface</p></td>
+<td><p>Pull Docker image layers</p></td>
+</tr>
+<tr class="row-even"><td><p>CloudWatch Logs</p></td>
+<td><p>Interface</p></td>
+<td><p>ECS container log delivery</p></td>
+</tr>
+<tr class="row-odd"><td><p>Secrets Manager</p></td>
+<td><p>Interface</p></td>
+<td><p>Inject secrets into containers at startup</p></td>
+</tr>
+<tr class="row-even"><td><p>Glue</p></td>
+<td><p>Interface</p></td>
+<td><p>Data Catalog queries from ECS tasks</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</section>
+<section id="ecr-elastic-container-registry">
+<h2>ECR (Elastic Container Registry)<a class="headerlink" href="#ecr-elastic-container-registry" title="Link to this heading"></a></h2>
+<p>A single private ECR repository (<code class="docutils literal notranslate"><span class="pre">etl-agent-app</span></code>) stores all Docker images.
+Images are tagged by Git SHA (<code class="docutils literal notranslate"><span class="pre">&lt;account&gt;.dkr.ecr.&lt;region&gt;.amazonaws.com/etl-agent-app:&lt;sha&gt;</span></code>).
+Image scanning on push is enabled to detect known CVEs. The CD pipeline also pushes a
+<code class="docutils literal notranslate"><span class="pre">:latest</span></code> tag for use as a Docker build cache on the next run.</p>
+</section>
+<section id="ecs-fargate">
+<h2>ECS Fargate<a class="headerlink" href="#ecs-fargate" title="Link to this heading"></a></h2>
+<dl>
+<dt><strong>Cluster</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-cluster</span></code>)</dt><dd><p>Container Insights (CloudWatch) is enabled for task-level CPU, memory, and network metrics.
+Both <code class="docutils literal notranslate"><span class="pre">FARGATE</span></code> and <code class="docutils literal notranslate"><span class="pre">FARGATE_SPOT</span></code> capacity providers are registered; the default
+strategy uses on-demand Fargate.</p>
+</dd>
+<dt><strong>API Service</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-api</span></code>)</dt><dd><p>Runs the FastAPI application.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CPU</p></td>
+<td><p>512 vCPU (0.5 vCPU)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Memory</p></td>
+<td><p>1024 MB</p></td>
+</tr>
+<tr class="row-even"><td><p>Desired count</p></td>
+<td><p>2 (configurable via <code class="docutils literal notranslate"><span class="pre">api_desired_count</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Min / Max (autoscaling)</p></td>
+<td><p>1 / 4</p></td>
+</tr>
+<tr class="row-even"><td><p>Scaling trigger</p></td>
+<td><p>CPU ≥ 70 % (scale-out cooldown 60 s)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health check</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code> → HTTP 200</p></td>
+</tr>
+<tr class="row-even"><td><p>Load balancer</p></td>
+<td><p>ALB target group, port 8000</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>Worker Service</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-worker</span></code>)</dt><dd><p>Runs the SQS consumer loop. One task = one in-flight pipeline run.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CPU</p></td>
+<td><p>4096 vCPU (4 vCPU)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Memory</p></td>
+<td><p>8192 MB (8 GB — for PySpark JVM heap)</p></td>
+</tr>
+<tr class="row-even"><td><p>Ephemeral storage</p></td>
+<td><p>30 GiB (PySpark temp files, .whl packaging)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Desired count</p></td>
+<td><p>0 at rest (scales from SQS depth)</p></td>
+</tr>
+<tr class="row-even"><td><p>Min / Max (autoscaling)</p></td>
+<td><p>0 / 10</p></td>
+</tr>
+<tr class="row-odd"><td><p>Scaling trigger</p></td>
+<td><p>1 worker per visible SQS message</p></td>
+</tr>
+<tr class="row-even"><td><p>Scale-in cooldown</p></td>
+<td><p>120 s; scale-out cooldown 30 s</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</section>
+<section id="application-load-balancer-alb">
+<h2>Application Load Balancer (ALB)<a class="headerlink" href="#application-load-balancer-alb" title="Link to this heading"></a></h2>
+<p>An internet-facing ALB sits in the public subnets and forwards HTTP traffic to the
+ECS API service. Two listener configurations exist in the Terraform, selected by the
+<code class="docutils literal notranslate"><span class="pre">acm_certificate_arn</span></code> variable:</p>
+<ul class="simple">
+<li><p><strong>HTTP only</strong> (<code class="docutils literal notranslate"><span class="pre">acm_certificate_arn</span> <span class="pre">=</span> <span class="pre">&quot;&quot;</span></code>) — port 80 forwards directly to the target
+group. Used in the current production deployment.</p></li>
+<li><p><strong>HTTPS + redirect</strong> (<code class="docutils literal notranslate"><span class="pre">acm_certificate_arn</span></code> set) — port 443 terminates TLS using the
+provided ACM certificate; port 80 issues a 301 redirect to 443.</p></li>
+</ul>
+<p>The ALB health check polls <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code> every 30 seconds and requires 2
+consecutive successes before marking a task healthy (3 failures = unhealthy).</p>
+</section>
+<section id="rds-postgresql-16">
+<h2>RDS PostgreSQL 16<a class="headerlink" href="#rds-postgresql-16" title="Link to this heading"></a></h2>
+<p>A managed PostgreSQL 16 instance stores all pipeline run state, user stories, and
+audit events.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Instance class</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">db.t3.small</span></code> (configurable)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Storage</p></td>
+<td><p>20 GB gp3, auto-scales to 100 GB</p></td>
+</tr>
+<tr class="row-even"><td><p>Encryption</p></td>
+<td><p>At rest (AWS-managed key)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Multi-AZ</p></td>
+<td><p>Enabled by default (<code class="docutils literal notranslate"><span class="pre">db_multi_az</span> <span class="pre">=</span> <span class="pre">true</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Backup retention</p></td>
+<td><p>7 days, daily window 03:00–04:00 UTC</p></td>
+</tr>
+<tr class="row-odd"><td><p>Slow query logging</p></td>
+<td><p>Queries &gt; 1 000 ms logged to CloudWatch</p></td>
+</tr>
+<tr class="row-even"><td><p>Performance Insights</p></td>
+<td><p>Enabled, 7-day retention</p></td>
+</tr>
+<tr class="row-odd"><td><p>Deletion protection</p></td>
+<td><p>Enabled — must be manually disabled to destroy</p></td>
+</tr>
+<tr class="row-even"><td><p>Final snapshot</p></td>
+<td><p>Created automatically on <code class="docutils literal notranslate"><span class="pre">terraform</span> <span class="pre">destroy</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The database is placed in private subnets and is not publicly accessible. Only the
+ECS task security group (<code class="docutils literal notranslate"><span class="pre">ecs-tasks-sg</span></code>) is allowed to connect on port 5432.</p>
+<p>Migrations are run as an ECS one-off task during the CD pipeline (<code class="docutils literal notranslate"><span class="pre">alembic</span> <span class="pre">upgrade</span> <span class="pre">head</span></code>)
+before the new application image is deployed to the services.</p>
+</section>
+<section id="s3-simple-storage-service">
+<h2>S3 (Simple Storage Service)<a class="headerlink" href="#s3-simple-storage-service" title="Link to this heading"></a></h2>
+<p>Three buckets are created, all with public access blocked:</p>
+<dl class="simple">
+<dt><strong>etl-agent-raw-production</strong></dt><dd><p>Stores the source data for pipeline runs. The Olist dataset is uploaded here
+under the <code class="docutils literal notranslate"><span class="pre">olist/</span></code> prefix, organised into one subfolder per dataset:
+<code class="docutils literal notranslate"><span class="pre">olist/orders/</span></code>, <code class="docutils literal notranslate"><span class="pre">olist/customers/</span></code>, etc. (CSV files).</p>
+</dd>
+<dt><strong>etl-agent-processed-production</strong></dt><dd><p>Destination for pipeline output data. Generated PySpark jobs write their results
+here. The <code class="docutils literal notranslate"><span class="pre">OUTPUT_DATA_BUCKET</span></code> environment variable points containers at this bucket.</p>
+</dd>
+<dt><strong>etl-agent-artifacts-production</strong></dt><dd><p>Stores versioned <code class="docutils literal notranslate"><span class="pre">.whl</span></code> pipeline packages. Versioning is enabled. Key structure:
+<code class="docutils literal notranslate"><span class="pre">artifacts/&lt;pipeline_name&gt;/&lt;pipeline_name&gt;.whl</span></code>.</p>
+</dd>
+</dl>
+<p>An S3 lifecycle policy on the raw bucket transitions objects to
+<code class="docutils literal notranslate"><span class="pre">STANDARD_IA</span></code> after 30 days and to <code class="docutils literal notranslate"><span class="pre">GLACIER</span></code> after 90 days.</p>
+</section>
+<section id="sqs-simple-queue-service">
+<h2>SQS (Simple Queue Service)<a class="headerlink" href="#sqs-simple-queue-service" title="Link to this heading"></a></h2>
+<dl>
+<dt><strong>etl-agent-pipeline</strong> (main queue)</dt><dd><p>Receives pipeline job messages from the API service. Each message contains the
+<code class="docutils literal notranslate"><span class="pre">run_id</span></code>, <code class="docutils literal notranslate"><span class="pre">story_id</span></code>, <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> flag, and the full serialised <code class="docutils literal notranslate"><span class="pre">UserStory</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Visibility timeout</p></td>
+<td><p>900 seconds (matches worker pipeline budget)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Message retention</p></td>
+<td><p>86 400 seconds (1 day)</p></td>
+</tr>
+<tr class="row-even"><td><p>Max message size</p></td>
+<td><p>256 KB</p></td>
+</tr>
+<tr class="row-odd"><td><p>Long-poll wait time</p></td>
+<td><p>20 seconds</p></td>
+</tr>
+<tr class="row-even"><td><p>Encryption</p></td>
+<td><p>SSE-SQS (<code class="docutils literal notranslate"><span class="pre">alias/aws/sqs</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>DLQ after</p></td>
+<td><p>3 failed receive attempts</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>etl-agent-pipeline-dlq</strong> (dead-letter queue)</dt><dd><p>Receives messages that failed processing 3 times. Retention: 14 days.
+A CloudWatch alarm fires if any message lands here.</p>
+</dd>
+</dl>
+<p>The worker implements a heartbeat loop that calls <code class="docutils literal notranslate"><span class="pre">ChangeMessageVisibility</span></code> every
+4 minutes to extend the timeout while a long pipeline run is in progress, preventing
+premature re-queuing.</p>
+</section>
+<section id="aws-glue-data-catalog">
+<h2>AWS Glue Data Catalog<a class="headerlink" href="#aws-glue-data-catalog" title="Link to this heading"></a></h2>
+<p>The Glue catalog is the project’s data model layer. It stores schema metadata for all
+available source datasets so that agents can discover what data exists without hardcoding
+paths or column names.</p>
+<p><strong>Database</strong>: <code class="docutils literal notranslate"><span class="pre">etl_agent_catalog</span></code></p>
+<dl>
+<dt><strong>Crawler</strong>: <code class="docutils literal notranslate"><span class="pre">etl-agent-olist-crawler</span></code></dt><dd><p>Crawls 9 separate S3 target prefixes (one per Olist dataset) to create 9 independent
+tables. The crawler uses the <code class="docutils literal notranslate"><span class="pre">AWSGlueServiceRole</span></code> managed policy which grants all
+required Glue + CloudWatch Logs permissions, plus a custom inline S3 policy scoped
+to <code class="docutils literal notranslate"><span class="pre">olist/*</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Table</p></th>
+<th class="head"><p>S3 Path</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>orders</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/orders/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>order_items</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/order_items/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>order_payments</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/order_payments/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>order_reviews</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/order_reviews/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>customers</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/customers/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>sellers</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/sellers/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>products</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/products/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>geolocation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/geolocation/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>product_category_translation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s3://etl-agent-raw-prod/olist/product_category_translation/</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+<p>After the crawler runs, each table is available via <code class="docutils literal notranslate"><span class="pre">boto3.client(&quot;glue&quot;).get_tables()</span></code>
+and contains the column names and data types inferred from the CSV headers.</p>
+</section>
+<section id="aws-secrets-manager">
+<h2>AWS Secrets Manager<a class="headerlink" href="#aws-secrets-manager" title="Link to this heading"></a></h2>
+<p>All secrets are stored as a single JSON object in one secret: <code class="docutils literal notranslate"><span class="pre">etl-agent/app</span></code>.
+ECS tasks pull individual keys at startup via the <code class="docutils literal notranslate"><span class="pre">secrets</span></code> block in the task definition
+(no secrets in environment variables or image layers).</p>
+<p>Required keys:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ANTHROPIC_API_KEY</p></td>
+<td><p>Anthropic API key for Claude calls</p></td>
+</tr>
+<tr class="row-odd"><td><p>API_KEY</p></td>
+<td><p>Bearer token for the REST API</p></td>
+</tr>
+<tr class="row-even"><td><p>GITHUB_TOKEN</p></td>
+<td><p>GitHub Personal Access Token (repo + workflow + issues)</p></td>
+</tr>
+<tr class="row-odd"><td><p>GITHUB_OWNER</p></td>
+<td><p>GitHub username / org that owns the target repo</p></td>
+</tr>
+<tr class="row-even"><td><p>GITHUB_REPO</p></td>
+<td><p>Target repository name where PRs are created</p></td>
+</tr>
+<tr class="row-odd"><td><p>AWS_S3_ARTIFACTS_BUCKET</p></td>
+<td><p>Name of the artifacts S3 bucket</p></td>
+</tr>
+<tr class="row-even"><td><p>DATABASE_URL</p></td>
+<td><p>Full asyncpg connection string for RDS</p></td>
+</tr>
+<tr class="row-odd"><td><p>DB_PASSWORD</p></td>
+<td><p>RDS master password (used by Terraform-registered task defs)</p></td>
+</tr>
+<tr class="row-even"><td><p>SQS_QUEUE_URL</p></td>
+<td><p>Full SQS queue URL for the pipeline queue</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="iam">
+<h2>IAM<a class="headerlink" href="#iam" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>Execution Role</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-ecs-execution</span></code>)</dt><dd><p>Used by the ECS agent to pull images from ECR and inject secrets from Secrets Manager.
+Attached policies: <code class="docutils literal notranslate"><span class="pre">AmazonECSTaskExecutionRolePolicy</span></code> + custom Secrets Manager read policy.</p>
+</dd>
+<dt><strong>Task Role</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-ecs-task</span></code>)</dt><dd><p>Used by running containers to call AWS services at runtime.
+Permissions: S3 read/write (all three buckets), SQS send/receive/delete,
+Glue read (<code class="docutils literal notranslate"><span class="pre">GetDatabase</span></code>, <code class="docutils literal notranslate"><span class="pre">GetTables</span></code>, <code class="docutils literal notranslate"><span class="pre">GetTable</span></code>), CloudWatch Logs write,
+Secrets Manager read.</p>
+</dd>
+<dt><strong>Glue Crawler Role</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-glue-crawler</span></code>)</dt><dd><p>Assumed by the Glue service. Attached: <code class="docutils literal notranslate"><span class="pre">AWSGlueServiceRole</span></code> managed policy
+(covers all Glue + CloudWatch Logs operations) + inline S3 read policy scoped
+to <code class="docutils literal notranslate"><span class="pre">olist/*</span></code>.</p>
+</dd>
+<dt><strong>RDS Monitoring Role</strong> (<code class="docutils literal notranslate"><span class="pre">etl-agent-rds-monitoring</span></code>)</dt><dd><p>Assumed by <code class="docutils literal notranslate"><span class="pre">monitoring.rds.amazonaws.com</span></code> for Enhanced Monitoring.
+Attached: <code class="docutils literal notranslate"><span class="pre">AmazonRDSEnhancedMonitoringRole</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="cloudwatch">
+<h2>CloudWatch<a class="headerlink" href="#cloudwatch" title="Link to this heading"></a></h2>
+<p>Log groups are created for both ECS services with 30-day retention:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/ecs/etl-agent/api</span></code> — FastAPI access logs + structured JSON application logs</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/ecs/etl-agent/worker</span></code> — Worker lifecycle events, pipeline node completions,
+LLM call traces</p></li>
+</ul>
+<p>CloudWatch alarms:</p>
+<ul class="simple">
+<li><p><strong>RDS high connections</strong> — fires when average DB connection count exceeds 80.</p></li>
+<li><p><strong>SQS DLQ not empty</strong> — fires immediately when any pipeline message lands in the DLQ,
+indicating a failed run that exhausted retries.</p></li>
+</ul>
+<p>Both alarms can be routed to an SNS topic by setting <code class="docutils literal notranslate"><span class="pre">alarm_sns_topic_arn</span></code> in
+<code class="docutils literal notranslate"><span class="pre">terraform.tfvars</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="docker.html" class="btn btn-neutral float-right" title="Docker Setup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Suresh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

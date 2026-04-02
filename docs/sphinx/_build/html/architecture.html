@@ -1,0 +1,845 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture &mdash; Autonomous ETL Agent — Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AWS Services" href="aws_services.html" />
+    <link rel="prev" title="Autonomous ETL Agent" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Autonomous ETL Agent
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws_services.html">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#multi-stage-build">Multi-Stage Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#environment-variables-set-in-image">Environment Variables Set in Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#health-check">Health Check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#default-cmd-vs-worker-cmd">Default CMD vs Worker CMD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-compose-local-development">Docker Compose (Local Development)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#services">Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#build-the-image-manually">Build the Image Manually</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#run-the-api-container-locally-without-compose">Run the API Container Locally (without Compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#push-to-ecr-cd-pipeline-does-this-automatically">Push to ECR (CD pipeline does this automatically)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="olist_data.html">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#dataset-tables">Dataset Tables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#orders">orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-items">order_items</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-payments">order_payments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-reviews">order_reviews</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#customers">customers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#sellers">sellers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#products">products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#geolocation">geolocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#product-category-translation">product_category_translation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="orchestration.html#graceful-shutdown">Graceful Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-health"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-stories"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/stories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs-run-id"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs/{run_id}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-runs-run-id-approve"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/runs/{run_id}/approve</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#put-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#delete-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Autonomous ETL Agent</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The Autonomous ETL Agent is a cloud-native, LLM-driven system built on AWS ECS Fargate.
+It separates concerns into two independently-scalable roles that share a single Docker image:</p>
+<ul class="simple">
+<li><p><strong>API service</strong> — a FastAPI application that accepts user stories via REST, persists run
+state to PostgreSQL, and publishes pipeline jobs to an SQS queue.</p></li>
+<li><p><strong>Worker service</strong> — a long-running SQS consumer that drives a LangGraph agentic pipeline
+to completion: parse → catalog lookup → code generation → testing → PR creation → deploy.</p></li>
+</ul>
+<p>Both services run from the same <code class="docutils literal notranslate"><span class="pre">python:3.12-slim</span></code> Docker image. The worker simply
+overrides the container <code class="docutils literal notranslate"><span class="pre">CMD</span></code> from <code class="docutils literal notranslate"><span class="pre">uvicorn</span></code> to <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">etl_agent.worker</span></code>.</p>
+<pre  class="mermaid">
+        %%{init: {'theme': 'default', 'themeVariables': {'background': '#ffffff', 'mainBkg': '#ffffff', 'edgeLabelBackground': '#ffffff', 'nodeTextColor': '#000000'}}}%%
+flowchart TD
+    Client([&quot;🌐 Browser / curl&quot;])
+    ALB[&quot;🔀 Application Load Balancer\nHTTP :80&quot;]
+    API[&quot;⚡ FastAPI · uvicorn\nECS Fargate — API Service\n512 vCPU · 1 GB RAM · 1–4 tasks\nCPU autoscaling&quot;]
+    SQS[(&quot;📨 SQS Queue\netl-agent-pipeline\nvisibility=900s · DLQ after 3 retries&quot;)]
+    Worker[&quot;🐍 Python · PySpark\nECS Fargate — Worker Service\n4 vCPU · 8 GB RAM · 0–10 tasks\nSQS-depth autoscaling&quot;]
+    LGLabel[&quot;LangGraph Pipeline&quot;]
+    PS[&quot;1️⃣ parse_story&quot;]
+    RC[&quot;2️⃣ resolve_catalog&quot;]
+    GC[&quot;3️⃣ generate_code&quot;]
+    RT[&quot;4️⃣ run_tests&quot;]
+    AG[&quot;5️⃣ approval_gate&quot;]
+    CP[&quot;6️⃣ create_pr&quot;]
+    D[&quot;7️⃣ deploy&quot;]
+    RDS[(&quot;🗄️ RDS PostgreSQL 16&quot;)]
+    S3[(&quot;🪣 S3 × 3 Buckets&quot;)]
+    Glue[&quot;🔍 Glue Data Catalog&quot;]
+    SM[&quot;🔐 Secrets Manager&quot;]
+
+    Client --&gt;|&quot;HTTP&quot;| ALB
+    ALB --&gt;|&quot;forward :8000&quot;| API
+    API --&gt;|&quot;SQS publish&quot;| SQS
+    SQS --&gt;|&quot;SQS consume&quot;| Worker
+    Worker --&gt;|&quot;drives&quot;| LGLabel
+    LGLabel --&gt; PS
+    PS --&gt; RC --&gt; GC --&gt; RT --&gt; AG --&gt; CP --&gt; D
+    API ---|&quot;reads/writes&quot;| RDS
+    Worker ---|&quot;reads/writes&quot;| RDS
+    Worker ---|&quot;artifacts&quot;| S3
+    Worker ---|&quot;schema lookup&quot;| Glue
+    API ---|&quot;secrets&quot;| SM
+    Worker ---|&quot;secrets&quot;| SM
+
+%% Light backgrounds, dark text, high-contrast borders
+classDef aws fill:#FFE0A0,color:#000,stroke:#CC7700,stroke-width:2px
+classDef ecs fill:#FFB3D9,color:#000,stroke:#B0004E,stroke-width:2px
+classDef data fill:#B7E1B0,color:#000,stroke:#2D6A2E,stroke-width:2px
+classDef lg fill:#B3D4FF,color:#000,stroke:#1A56BB,stroke-width:2px
+classDef lglabel fill:#E8F0FF,color:#000,stroke:#1A56BB,stroke-width:2px,stroke-dasharray:5 4
+class ALB,SM aws
+class API,Worker ecs
+class RDS,S3,Glue data
+class PS,RC,GC,RT,AG,CP,D lg
+class LGLabel lglabel
+    </pre></section>
+<section id="key-design-decisions">
+<h2>Key Design Decisions<a class="headerlink" href="#key-design-decisions" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>Single image, two roles</strong></dt><dd><p>The same Docker image runs both the API and the worker. This keeps the CI/CD pipeline
+simple (one build, one push) and ensures the code version is always consistent between
+the two roles. The worker’s task definition overrides the container <code class="docutils literal notranslate"><span class="pre">CMD</span></code>.</p>
+</dd>
+<dt><strong>SQS as the coordination layer</strong></dt><dd><p>The API returns immediately with a <code class="docutils literal notranslate"><span class="pre">run_id</span></code> after publishing to SQS. The worker picks
+up the message asynchronously. This decouples request intake from execution, allows the
+worker to scale independently to zero, and provides automatic retry/DLQ handling for
+free.</p>
+</dd>
+<dt><strong>LangGraph for agent orchestration</strong></dt><dd><p>LangGraph’s <code class="docutils literal notranslate"><span class="pre">StateGraph</span></code> provides a deterministic DAG of agent nodes with typed shared
+state (<code class="docutils literal notranslate"><span class="pre">GraphState</span></code>). Each node is a standalone async function, making it easy to test
+nodes in isolation, add conditional edges (approval gate), and retry sub-graphs.</p>
+</dd>
+<dt><strong>Glue Data Catalog as the data model</strong></dt><dd><p>Rather than hardcoding dataset schemas in the application, all knowledge about available
+datasets lives in the AWS Glue Data Catalog. A Glue Crawler scans the Olist S3 data
+on demand and registers table schemas. The <code class="docutils literal notranslate"><span class="pre">StoryParserAgent</span></code> queries the catalog at
+runtime to ground code generation in real column names.</p>
+</dd>
+<dt><strong>Immutable artifact delivery</strong></dt><dd><p>Generated pipeline code is packaged as a Python <code class="docutils literal notranslate"><span class="pre">.whl</span></code> file, uploaded to a versioned
+S3 artifacts bucket, and referenced by a GitHub PR. This gives the team a reviewable,
+deployable artifact that is independent of the agent’s runtime state.</p>
+</dd>
+</dl>
+</section>
+<section id="source-layout">
+<h2>Source Layout<a class="headerlink" href="#source-layout" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>autonomous-etl-agent/
+├── src/etl_agent/
+│   ├── agents/          # Five LangGraph agent nodes
+│   │   ├── base.py      # ReactAgent base class (LLM loop + tool loop)
+│   │   ├── story_parser.py
+│   │   ├── coding_agent.py
+│   │   ├── test_agent.py
+│   │   ├── pr_agent.py
+│   │   └── deploy_agent.py
+│   ├── api/             # FastAPI application
+│   │   ├── main.py      # App factory, middleware, router registration
+│   │   ├── middleware.py # API key auth, request size limit
+│   │   └── v1/          # Versioned REST endpoints
+│   │       ├── stories.py   # POST /stories
+│   │       ├── runs.py      # GET /runs, GET /runs/{id}
+│   │       ├── catalog.py   # GET /catalog (Glue proxy)
+│   │       ├── health.py    # GET /health
+│   │       └── run_store.py # DB persistence helpers
+│   ├── core/
+│   │   ├── models.py    # Pydantic models: UserStory, ETLSpec, RunResult
+│   │   ├── state.py     # GraphState TypedDict + routing helpers
+│   │   ├── config.py    # Settings (pydantic-settings, .env)
+│   │   ├── data_catalog.py  # Glue boto3 client wrapper
+│   │   ├── audit.py     # Immutable audit event writer
+│   │   ├── llm_governance.py # Token budget tracker
+│   │   └── logging.py   # structlog configuration
+│   ├── database/
+│   │   ├── models.py    # SQLAlchemy ORM models
+│   │   ├── session.py   # Async session factory
+│   │   └── migrations/  # Alembic migrations
+│   ├── prompts/         # System + user prompt builders
+│   ├── tools/           # AWS, GitHub, code validator helpers
+│   ├── spark/           # PySpark session + optimizer helpers
+│   └── worker.py        # SQS consumer entry point
+├── infra/
+│   ├── Dockerfile       # Multi-stage builder → runtime image
+│   ├── docker-compose.yml
+│   ├── ecs-task-def-api.json
+│   ├── ecs-task-def-worker.json
+│   └── terraform/       # All AWS infrastructure as code
+├── tests/
+│   ├── unit/
+│   └── integration/
+└── .github/workflows/
+    ├── ci.yml           # Lint, type-check, unit + integration tests
+    └── cd.yml           # Build image, migrate DB, deploy to ECS
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Autonomous ETL Agent" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="aws_services.html" class="btn btn-neutral float-right" title="AWS Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Suresh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

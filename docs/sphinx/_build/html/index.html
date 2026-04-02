@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous ETL Agent &mdash; Autonomous ETL Agent — Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Architecture" href="architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Autonomous ETL Agent
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws_services.html">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#multi-stage-build">Multi-Stage Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#environment-variables-set-in-image">Environment Variables Set in Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#health-check">Health Check</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#default-cmd-vs-worker-cmd">Default CMD vs Worker CMD</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-compose-local-development">Docker Compose (Local Development)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#services">Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#build-the-image-manually">Build the Image Manually</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#run-the-api-container-locally-without-compose">Run the API Container Locally (without Compose)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html#push-to-ecr-cd-pipeline-does-this-automatically">Push to ECR (CD pipeline does this automatically)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="olist_data.html">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#dataset-tables">Dataset Tables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#orders">orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-items">order_items</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-payments">order_payments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#order-reviews">order_reviews</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#customers">customers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#sellers">sellers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#products">products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#geolocation">geolocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="olist_data.html#product-category-translation">product_category_translation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="orchestration.html#graceful-shutdown">Graceful Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-health"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/health</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-stories"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/stories</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-runs-run-id"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/runs/{run_id}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-runs-run-id-approve"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/runs/{run_id}/approve</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#get-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#post-api-v1-catalog"><code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/v1/catalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#put-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">PUT</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#delete-api-v1-catalog-name"><code class="docutils literal notranslate"><span class="pre">DELETE</span> <span class="pre">/api/v1/catalog/{name}</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Autonomous ETL Agent</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Autonomous ETL Agent</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="autonomous-etl-agent">
+<h1>Autonomous ETL Agent<a class="headerlink" href="#autonomous-etl-agent" title="Link to this heading"></a></h1>
+<p><strong>Autonomous ETL Agent</strong> is an AI-powered data pipeline platform that converts plain-English
+user stories into production-ready PySpark ETL pipelines — fully automated, from schema
+discovery through code generation, testing, GitHub PR creation, and artifact deployment.</p>
+<p>A user submits a story describing what data transformation they need. The system reads the
+AWS Glue Data Catalog, generates tested PySpark code, opens a pull request, uploads the
+artifact to S3, and (optionally) triggers an Airflow DAG — with no manual coding required.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#key-design-decisions">Key Design Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#source-layout">Source Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws_services.html">AWS Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#vpc-networking">VPC &amp; Networking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecr-elastic-container-registry">ECR (Elastic Container Registry)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#ecs-fargate">ECS Fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#application-load-balancer-alb">Application Load Balancer (ALB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#rds-postgresql-16">RDS PostgreSQL 16</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#s3-simple-storage-service">S3 (Simple Storage Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#sqs-simple-queue-service">SQS (Simple Queue Service)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-glue-data-catalog">AWS Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#aws-secrets-manager">AWS Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#iam">IAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws_services.html#cloudwatch">CloudWatch</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-image">Docker Image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#docker-compose-local-development">Docker Compose (Local Development)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="docker.html#build-the-image-manually">Build the Image Manually</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="olist_data.html">Olist Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#what-is-olist">What is Olist?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#dataset-tables">Dataset Tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#entity-relationship">Entity Relationship</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#uploading-the-data-to-s3">Uploading the Data to S3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="olist_data.html#sample-pipeline-stories">Sample Pipeline Stories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#reactagent-base-class">ReactAgent Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-1-storyparseragent">Agent 1 — StoryParserAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-2-codingagent">Agent 2 — CodingAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-3-testagent">Agent 3 — TestAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-4-pragent">Agent 4 — PRAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#agent-5-deployagent">Agent 5 — DeployAgent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#approval-gate-orchestrator-node">Approval Gate (Orchestrator Node)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agents.html#llm-configuration">LLM Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orchestration.html">Orchestration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#langgraph-overview">LangGraph Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#graphstate">GraphState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#pipeline-graph">Pipeline Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#node-descriptions">Node Descriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#streaming-updates">Streaming Updates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#worker-integration">Worker Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#run-status-lifecycle">Run Status Lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="orchestration.html#audit-events">Audit Events</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started (Local Development)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clone-the-repository">Clone the Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#configure-environment">Configure Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#install-python-dependencies">Install Python Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#set-up-pre-commit-hooks">Set Up Pre-commit Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#start-the-local-stack">Start the Local Stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-database-migrations">Run Database Migrations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-the-application-without-docker">Run the Application Without Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verify-the-setup">Verify the Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#submit-a-test-story">Submit a Test Story</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-tests">Run Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-linting-and-type-checking">Run Linting and Type Checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#access-the-uis">Access the UIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#stopping-the-local-stack">Stopping the Local Stack</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment (AWS ECS Fargate)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-1-bootstrap-secrets-manager">Step 1 — Bootstrap Secrets Manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-2-configure-terraform-variables">Step 2 — Configure Terraform Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-3-apply-infrastructure">Step 3 — Apply Infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-4-upload-olist-data-run-glue-crawler">Step 4 — Upload Olist Data &amp; Run Glue Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-5-configure-github-actions-secrets">Step 5 — Configure GitHub Actions Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-6-trigger-the-cd-pipeline">Step 6 — Trigger the CD Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-7-update-secrets-with-real-values">Step 7 — Update Secrets with Real Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#step-8-verify-deployment">Step 8 — Verify Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#worker-scaling">Worker Scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tearing-down">Tearing Down</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#https-configuration">HTTPS Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#authentication">Authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-check">Health Check</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#stories">Stories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#pipeline-runs">Pipeline Runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#data-catalog">Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#web-ui">Web UI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm">LLM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#github">GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#database">Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#sqs">SQS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#glue-data-catalog">Glue Data Catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#llm-governance">LLM Governance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#pipeline-behaviour">Pipeline Behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#miscellaneous">Miscellaneous</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#terraform-variables">Terraform Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ci_cd.html">CI/CD Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#ci-workflow-ci-yml">CI Workflow (ci.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#cd-workflow-cd-yml">CD Workflow (cd.yml)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#required-github-secrets">Required GitHub Secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci_cd.html#common-ci-failures-and-fixes">Common CI Failures and Fixes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documentation covers every aspect of the project: architecture, all AWS services,
+Docker setup, the Olist dataset, each agent, the LangGraph orchestration graph,
+local setup, cloud deployment, the REST API, and CI/CD pipeline.</p>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-right" title="Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Suresh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
