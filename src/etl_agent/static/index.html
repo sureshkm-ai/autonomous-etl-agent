@@ -452,38 +452,55 @@ function renderTracker(run) {
   const doneN = stagesDoneCount(run.status);
   const pct   = done ? 100 : Math.round(doneN / 5 * 100);
 
-  t.innerHTML = `
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in h-full flex flex-col">
-    <!-- Header -->
-    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div class="min-w-0">
-          <h2 class="font-semibold text-slate-800 truncate">${run.story_title || run.story_id || 'Pipeline'}</h2>
-          <div class="text-xs text-slate-400 font-mono mt-0.5">${(run.run_id||'').substring(0,8)}…</div>
+  // ── First render: build the full skeleton once ──────────────────────────────
+  if (!t.querySelector('#tracker-stages')) {
+    t.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in h-full flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="min-w-0">
+            <h2 class="font-semibold text-slate-800 truncate">${run.story_title || run.story_id || 'Pipeline'}</h2>
+            <div class="text-xs text-slate-400 font-mono mt-0.5">${(run.run_id||'').substring(0,8)}…</div>
+          </div>
+          <div id="tracker-badge">${badge(run.status)}</div>
         </div>
-        ${badge(run.status)}
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span>Progress</span><span id="tracker-pct">${pct}%</span>
+          </div>
+          <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div id="tracker-bar" class="progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}"
+                 style="width:${pct}%"></div>
+          </div>
+        </div>
       </div>
-      <!-- Progress bar -->
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs text-slate-400">
-          <span>Progress</span><span>${pct}%</span>
-        </div>
-        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div class="progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}"
-               style="width:${pct}%"></div>
-        </div>
+      <div id="tracker-stages" class="flex-1 p-5 space-y-1 overflow-y-auto">
+        ${STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('')}
       </div>
-    </div>
+      <div id="tracker-footer">
+        ${done ? resultsCard(run) : ''}
+        ${fail && run.error_message ? errorCard(run.error_message) : ''}
+      </div>
+    </div>`;
+    return;
+  }
 
-    <!-- Stages -->
-    <div class="flex-1 p-5 space-y-1 overflow-y-auto">
-      ${STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('')}
-    </div>
+  // ── Subsequent renders: surgical updates only (no full re-render) ───────────
+  const badgeEl  = t.querySelector('#tracker-badge');
+  const pctEl    = t.querySelector('#tracker-pct');
+  const barEl    = t.querySelector('#tracker-bar');
+  const stagesEl = t.querySelector('#tracker-stages');
+  const footerEl = t.querySelector('#tracker-footer');
 
-    <!-- Results -->
-    ${done ? resultsCard(run) : ''}
-    ${fail && run.error_message ? errorCard(run.error_message) : ''}
-  </div>`;
+  if (badgeEl)  badgeEl.innerHTML  = badge(run.status);
+  if (pctEl)    pctEl.textContent  = `${pct}%`;
+  if (barEl) {
+    barEl.style.width = `${pct}%`;
+    barEl.className   = `progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}`;
+  }
+  if (stagesEl) stagesEl.innerHTML = STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('');
+  if (footerEl) footerEl.innerHTML = (done ? resultsCard(run) : '') +
+                                     (fail && run.error_message ? errorCard(run.error_message) : '');
 }
 
 function stageRow(stage, idx, doneN, fail, done, run) {
