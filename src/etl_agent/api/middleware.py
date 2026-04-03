@@ -33,7 +33,9 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         settings = get_settings()
-        api_key = request.headers.get("X-API-Key")
+        # Accept the key from the header (programmatic clients) or from the
+        # HTTP-only session cookie set when the browser loads the UI.
+        api_key = request.headers.get("X-API-Key") or request.cookies.get("etl_session")
 
         if not api_key or api_key != settings.api_key:
             logger.warning(
