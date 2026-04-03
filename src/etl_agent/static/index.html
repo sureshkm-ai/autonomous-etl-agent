@@ -84,17 +84,8 @@
       </button>
     </nav>
 
-    <!-- API Key + connection status -->
-    <div class="px-3 py-4 border-t border-slate-700/60 space-y-3">
-      <div id="api-key-section">
-        <p class="text-xs text-slate-500 mb-1.5 font-medium">API Key</p>
-        <div class="flex gap-1.5">
-          <input id="sidebar-api-key" type="password" placeholder="Enter API key…"
-            class="flex-1 min-w-0 text-xs bg-slate-800 border border-slate-700 text-slate-200 rounded-md px-2 py-1.5 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-          <button onclick="saveApiKey()"
-            class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2 py-1.5 rounded-md transition-colors">Save</button>
-        </div>
-      </div>
+    <!-- Connection status -->
+    <div class="px-3 py-4 border-t border-slate-700/60">
       <div class="flex items-center gap-2 text-xs">
         <span id="conn-dot" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
         <span id="conn-text" class="text-slate-500">Checking…</span>
@@ -133,7 +124,6 @@
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 const S = {
-  apiKey: localStorage.getItem('etl_api_key') || '',
   page: 'dashboard',
   pollId: null,
   activeRunId: null,
@@ -158,7 +148,7 @@ function stagesDoneCount(status) {
 async function api(path, opts = {}) {
   const r = await fetch(path, {
     ...opts,
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': S.apiKey, ...(opts.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
   });
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
@@ -310,8 +300,7 @@ function runRow(r) {
 function renderNew() {
   el('page').innerHTML = `
   <div class="fade-in">
-    ${!S.apiKey ? apiKeyBanner() : ''}
-    <div id="main-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6 ${!S.apiKey ? 'opacity-50 pointer-events-none' : ''}">
+    <div id="main-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
       <!-- ── Form panel ── -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -393,8 +382,6 @@ function addCriteria() {
 // ─── Form submit ─────────────────────────────────────────────────────────────
 async function handleSubmit(e) {
   e.preventDefault();
-  if (!S.apiKey) { toast('⚠️ Enter your API key first', 'error'); return; }
-
   const f = e.target;
   const criteria = [...f.querySelectorAll('[name="criteria"]')]
     .map(i => i.value.trim()).filter(Boolean);
@@ -452,38 +439,55 @@ function renderTracker(run) {
   const doneN = stagesDoneCount(run.status);
   const pct   = done ? 100 : Math.round(doneN / 5 * 100);
 
-  t.innerHTML = `
-  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in h-full flex flex-col">
-    <!-- Header -->
-    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div class="min-w-0">
-          <h2 class="font-semibold text-slate-800 truncate">${run.story_title || run.story_id || 'Pipeline'}</h2>
-          <div class="text-xs text-slate-400 font-mono mt-0.5">${(run.run_id||'').substring(0,8)}…</div>
+  // ── First render: build the full skeleton once ──────────────────────────────
+  if (!t.querySelector('#tracker-stages')) {
+    t.innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden fade-in h-full flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="min-w-0">
+            <h2 class="font-semibold text-slate-800 truncate">${run.story_title || run.story_id || 'Pipeline'}</h2>
+            <div class="text-xs text-slate-400 font-mono mt-0.5">${(run.run_id||'').substring(0,8)}…</div>
+          </div>
+          <div id="tracker-badge">${badge(run.status)}</div>
         </div>
-        ${badge(run.status)}
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span>Progress</span><span id="tracker-pct">${pct}%</span>
+          </div>
+          <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div id="tracker-bar" class="progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}"
+                 style="width:${pct}%"></div>
+          </div>
+        </div>
       </div>
-      <!-- Progress bar -->
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs text-slate-400">
-          <span>Progress</span><span>${pct}%</span>
-        </div>
-        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div class="progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}"
-               style="width:${pct}%"></div>
-        </div>
+      <div id="tracker-stages" class="flex-1 p-5 space-y-1 overflow-y-auto">
+        ${STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('')}
       </div>
-    </div>
+      <div id="tracker-footer">
+        ${done ? resultsCard(run) : ''}
+        ${fail && run.error_message ? errorCard(run.error_message) : ''}
+      </div>
+    </div>`;
+    return;
+  }
 
-    <!-- Stages -->
-    <div class="flex-1 p-5 space-y-1 overflow-y-auto">
-      ${STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('')}
-    </div>
+  // ── Subsequent renders: surgical updates only (no full re-render) ───────────
+  const badgeEl  = t.querySelector('#tracker-badge');
+  const pctEl    = t.querySelector('#tracker-pct');
+  const barEl    = t.querySelector('#tracker-bar');
+  const stagesEl = t.querySelector('#tracker-stages');
+  const footerEl = t.querySelector('#tracker-footer');
 
-    <!-- Results -->
-    ${done ? resultsCard(run) : ''}
-    ${fail && run.error_message ? errorCard(run.error_message) : ''}
-  </div>`;
+  if (badgeEl)  badgeEl.innerHTML  = badge(run.status);
+  if (pctEl)    pctEl.textContent  = `${pct}%`;
+  if (barEl) {
+    barEl.style.width = `${pct}%`;
+    barEl.className   = `progress-bar h-full rounded-full ${fail ? 'bg-red-400' : 'bg-indigo-500'}`;
+  }
+  if (stagesEl) stagesEl.innerHTML = STAGES.map((s, i) => stageRow(s, i, doneN, fail, done, run)).join('');
+  if (footerEl) footerEl.innerHTML = (done ? resultsCard(run) : '') +
+                                     (fail && run.error_message ? errorCard(run.error_message) : '');
 }
 
 function stageRow(stage, idx, doneN, fail, done, run) {
@@ -808,30 +812,6 @@ function testPanel(tr) {
   </div>`;
 }
 
-// ─── API Key ─────────────────────────────────────────────────────────────────
-function apiKeyBanner() {
-  return `
-  <div class="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-    </svg>
-    <div>
-      <p class="text-sm font-semibold text-amber-800 mb-0.5">API Key Required</p>
-      <p class="text-xs text-amber-600">Enter your <code class="font-mono bg-amber-100 px-1 rounded">API_KEY</code> in the sidebar to enable submissions.</p>
-    </div>
-  </div>`;
-}
-
-function saveApiKey() {
-  const k = el('sidebar-api-key')?.value?.trim();
-  if (k) {
-    S.apiKey = k;
-    localStorage.setItem('etl_api_key', k);
-    toast('✅ API key saved', 'success');
-    if (S.page === 'new') renderNew();
-  }
-}
 
 // ─── Shared UI components ────────────────────────────────────────────────────
 function badge(status) {
@@ -926,9 +906,6 @@ style.textContent = `.inp {
 document.head.appendChild(style);
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-// Restore API key in sidebar input
-if (S.apiKey) el('sidebar-api-key').value = S.apiKey;
-
 healthCheck();
 setInterval(healthCheck, 30000);
 navigate('dashboard');

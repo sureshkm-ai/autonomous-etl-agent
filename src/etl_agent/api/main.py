@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from etl_agent.core.config import get_settings
@@ -99,11 +99,30 @@ def create_app() -> FastAPI:
     app.include_router(catalog.router, prefix="/api/v1", tags=["catalog"])
 
     # ------------------------------------------------------------------
-    # Static UI
+    # Static UI — served via explicit route so we can set an HTTP-only
+    # session cookie.  The browser sends the cookie automatically on every
+    # subsequent /api/v1/* request, so users never have to enter a key.
     # ------------------------------------------------------------------
     static_dir = Path(__file__).parent.parent / "static"
+
     if static_dir.exists():
-        app.mount("/ui", StaticFiles(directory=str(static_dir), html=True), name="ui")
+        ui_html = (static_dir / "index.html").read_text(encoding="utf-8")
+
+        @app.get("/ui", include_in_schema=False)
+        @app.get("/ui/", include_in_schema=False)
+        async def serve_ui() -> HTMLResponse:
+            settings = get_settings()
+            resp = HTMLResponse(content=ui_html)
+            resp.set_cookie(
+                key="etl_session",
+                value=settings.api_key,
+                httponly=True,       # not accessible from JavaScript
+                samesite="strict",   # never sent on cross-site requests
+                secure=False,        # set True when TLS is terminated at the app
+                max_age=86400 * 7,   # 7 days
+                path="/",
+            )
+            return resp
 
     # Redirect root to UI
     @app.get("/", include_in_schema=False)
