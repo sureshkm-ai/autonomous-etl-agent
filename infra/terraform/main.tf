@@ -67,6 +67,17 @@ resource "aws_s3_bucket_public_access_block" "artifacts" {
   restrict_public_buckets = true
 }
 
+# ── S3 EventBridge Notification (raw bucket) ──────────────────────────────────
+# Enables S3 to send all object-level events to EventBridge.
+# The EventBridge rule in iceberg.tf filters for ObjectCreated only.
+# NOTE: This requires the raw bucket to have EventBridge notifications enabled;
+#       the actual rule/target live in iceberg.tf.
+
+resource "aws_s3_bucket_notification" "raw_events" {
+  bucket      = aws_s3_bucket.raw.id
+  eventbridge = true
+}
+
 # ── SSH Key Pair ──────────────────────────────────────────────────────────────
 # Removed: ECS Fargate does not use EC2 key pairs.
 # The original resource has been preserved in ec2_bkp.tf.bak.

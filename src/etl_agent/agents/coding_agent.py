@@ -108,6 +108,9 @@ class CodingAgent(ReactAgent):
                 previous_failure=previous_failure,
                 retry_count=retry_count,
                 source_schema=state.get("source_schema"),
+                glue_table_name=state.get("glue_table_name"),
+                glue_database=self.settings.glue_catalog_database,
+                iceberg_warehouse=self.settings.iceberg_warehouse,
             )
 
             raw_response = await self.react_llm_loop(

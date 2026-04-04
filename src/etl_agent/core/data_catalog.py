@@ -101,6 +101,16 @@ class DataCatalogClient:
                 return entity
         return None
 
+    def get_table_name_by_path(self, s3_path: str) -> str | None:
+        """Return just the Glue/Iceberg table name for a given S3 path.
+
+        More lightweight than get_entity_by_path() when only the table name
+        is needed (e.g. for spark.table() code generation) — avoids building
+        the full DataEntity with all column metadata.
+        """
+        entity = self.get_entity_by_path(s3_path)
+        return entity.name if entity else None
+
     # ── Write operations (catalog admin API) ──────────────────────────────────
 
     def create_entity(self, entity: DataEntity) -> None:

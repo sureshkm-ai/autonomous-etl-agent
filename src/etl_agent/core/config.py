@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     glue_catalog_database: str = "etl_agent_catalog"
     output_data_bucket: str = ""  # e.g. "s3://etl-agent-processed-production/"
 
+    # ── Apache Iceberg ────────────────────────────────────────────────────────
+    # S3 URI for the Iceberg warehouse root. Set to the processed bucket:
+    #   ICEBERG_WAREHOUSE=s3://etl-agent-processed-prod/iceberg/
+    # Used by the ECS Worker SparkSession config and by the code generator
+    # prompt so generated pipelines use the correct warehouse location.
+    iceberg_warehouse: str = ""
+
     # ── Misc ──────────────────────────────────────────────────────────────────
     debug: bool = False
     redis_url: str | None = None

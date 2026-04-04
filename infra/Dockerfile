@@ -60,8 +60,20 @@ ENV PYTHONPATH="/app/src"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Spark config — minimise logging noise from the Spark worker
-ENV PYSPARK_SUBMIT_ARGS="--master local[*] pyspark-shell"
+# ── Iceberg JARs for Spark 3.5 ──────────────────────────────────────────────
+# Downloaded at build time from Maven Central.
+# Worker tasks use spark.table("glue_catalog.db.table") to read Iceberg tables.
+# API tasks never run Spark — these JARs add ~60MB but use the same image.
+ARG ICEBERG_VERSION=1.5.2
+
+RUN mkdir -p /opt/spark/jars && \
+    curl -fsSL -o /opt/spark/jars/iceberg-spark-runtime.jar \
+      "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/${ICEBERG_VERSION}/iceberg-spark-runtime-3.5_2.12-${ICEBERG_VERSION}.jar" && \
+    curl -fsSL -o /opt/spark/jars/iceberg-aws-bundle.jar \
+      "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/iceberg-aws-bundle-${ICEBERG_VERSION}.jar"
+
+# Spark config — include Iceberg JARs and minimise logging noise
+ENV PYSPARK_SUBMIT_ARGS="--jars /opt/spark/jars/iceberg-spark-runtime.jar,/opt/spark/jars/iceberg-aws-bundle.jar --master local[*] pyspark-shell"
 ENV SPARK_LOCAL_HOSTNAME="localhost"
 
 # Capture the git SHA at build time for traceability

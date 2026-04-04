@@ -1,0 +1,7 @@
+# Lambda Layer dependencies for schema_detector
+# Build the layer ZIP with:  bash build_layer.sh
+#
+# Note: boto3 and botocore are NOT listed here — they are pre-installed in the
+# Lambda Python 3.12 runtime and should not be bundled (doubles cold-start time).
+
+pyarrow==15.0.2

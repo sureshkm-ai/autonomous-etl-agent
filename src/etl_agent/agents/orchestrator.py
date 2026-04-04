@@ -59,22 +59,30 @@ async def _node_parse(state: GraphState) -> dict[str, Any]:
 
 
 async def _node_resolve_catalog(state: GraphState) -> dict[str, Any]:
-    """Catalog check #2 — retrieve the exact source schema from AWS Glue.
+    """Catalog check — resolve the Iceberg table name and source schema from Glue.
 
-    Looks up the source S3 path (set by parse_story) in the Glue Data Catalog
-    and returns the column schema as ``source_schema`` in GraphState. The
-    CodingAgent uses this for grounded code generation with real column names.
+    Looks up the source S3 path in the Glue Data Catalog and returns:
+      - ``glue_table_name``: the Glue/Iceberg table name (e.g. "orders").
+        The CodingAgent uses this to generate ``spark.table("glue_catalog.db.orders")``
+        instead of ``spark.read.csv("s3://...")`` — schema is read from Iceberg
+        metadata at runtime, so it is always authoritative.
+      - ``source_schema``: column list retained for backwards compatibility and
+        as a fallback if the Iceberg table is not yet available.
 
-    If the entity is not found (catalog empty, path mismatch) ``source_schema``
-    is set to None — the coding agent falls back to assumption-based generation
-    without hard-failing the pipeline.
+    If the entity is not found (catalog empty, migration not yet run, path
+    mismatch), both fields are set to None — the CodingAgent falls back to
+    ``spark.read.csv(source_path)`` without hard-failing the pipeline.
     """
     from etl_agent.core.data_catalog import get_catalog
 
     etl_spec = state.get("etl_spec")
     if etl_spec is None:
         logger.warning("resolve_catalog_skipped", reason="etl_spec not yet set")
-        return {"source_schema": None, "current_stage": "resolve_catalog"}
+        return {
+            "glue_table_name": None,
+            "source_schema": None,
+            "current_stage": "resolve_catalog",
+        }
 
     source_path: str = etl_spec.source.path
 
@@ -96,7 +104,8 @@ async def _node_resolve_catalog(state: GraphState) -> dict[str, Any]:
         entity = None
 
     if entity is not None:
-        schema: dict | None = {
+        table_name: str | None = entity.name
+        schema: dict[str, Any] | None = {
             "columns": [{"name": f.name, "type": f.type} for f in entity.columns],
             "format": entity.format,
             "source": source_path,
@@ -106,17 +115,23 @@ async def _node_resolve_catalog(state: GraphState) -> dict[str, Any]:
             run_id=state.get("run_id"),
             entity=entity.name,
             column_count=len(entity.columns),
+            iceberg_table=table_name,
         )
     else:
+        table_name = None
         schema = None
         logger.warning(
             "resolve_catalog_not_found",
             run_id=state.get("run_id"),
             source=source_path,
-            detail="Falling back to assumption-based code generation",
+            detail="Iceberg table not yet available — falling back to spark.read.csv()",
         )
 
-    return {"source_schema": schema, "current_stage": "resolve_catalog"}
+    return {
+        "glue_table_name": table_name,
+        "source_schema": schema,
+        "current_stage": "resolve_catalog",
+    }
 
 
 async def _node_code(state: GraphState) -> dict[str, Any]:
